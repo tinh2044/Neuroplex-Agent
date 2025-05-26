@@ -165,127 +165,80 @@ class KnowledgeExtractorProcessor:
         print(f"Knowledge extraction completed. Results saved to {destination_file}")
         return destination_file
 
-def _stream_text_chunks(file_source, chunk_length=512, overlap_buffer=100):
-    """Stream text in overlapping chunks for processing"""
-    text_buffer = ""
-    
-    with open(file_source, 'r', encoding='utf-8') as input_file:
-        while True:
-            data_chunk = input_file.read(chunk_length)
-            if not data_chunk:  # End of file reached
-                if text_buffer:
-                    yield text_buffer
-                break
-            
-            # Clean the chunk
-            cleaned_chunk = data_chunk.replace('\n', '').replace('\r', '')
-            text_buffer += cleaned_chunk
-            
-            # Yield complete chunks with overlap
-            while len(text_buffer) >= chunk_length:
-                yield text_buffer[:chunk_length]
-                text_buffer = text_buffer[chunk_length - overlap_buffer:]
-
-def _convert_output_to_structured_format(raw_results, operation_mode):
-    """Convert raw model output to structured format"""
-    structured_data = []
-    
-    for result_item in raw_results:
-        try:
-            # Validate JSON format
-            if isinstance(result_item, str) and result_item.strip().startswith('{') and result_item.strip().endswith('}'):
-                parsed_data = json.loads(result_item)
+    def _stream_text_chunks(self, file_source, chunk_length=512, overlap_buffer=100):
+        """Stream text in overlapping chunks for processing"""
+        text_buffer = ""
+        
+        with open(file_source, 'r', encoding='utf-8') as input_file:
+            while True:
+                data_chunk = input_file.read(chunk_length)
+                if not data_chunk:  # End of file reached
+                    if text_buffer:
+                        yield text_buffer
+                    break
                 
-                if operation_mode == "knowledge_synthesis":
-                    # Process knowledge graph format
-                    for entity_category, entity_instances in parsed_data.items():
-                        for entity_id, entity_properties in entity_instances.items():
-                            for property_name, property_values in entity_properties.items():
-                                if isinstance(property_values, list):
-                                    for value_item in property_values:
+                # Clean the chunk
+                cleaned_chunk = data_chunk.replace('\n', '').replace('\r', '')
+                text_buffer += cleaned_chunk
+                
+                # Yield complete chunks with overlap
+                while len(text_buffer) >= chunk_length:
+                    yield text_buffer[:chunk_length]
+                    text_buffer = text_buffer[chunk_length - overlap_buffer:]
+
+    def _convert_output_to_structured_format(self, raw_results, operation_mode):
+        """Convert raw model output to structured format"""
+        structured_data = []
+        
+        for result_item in raw_results:
+            try:
+                # Validate JSON format
+                if isinstance(result_item, str) and result_item.strip().startswith('{') and result_item.strip().endswith('}'):
+                    parsed_data = json.loads(result_item)
+                    
+                    if operation_mode == "knowledge_synthesis":
+                        # Process knowledge graph format
+                        for entity_category, entity_instances in parsed_data.items():
+                            for entity_id, entity_properties in entity_instances.items():
+                                for property_name, property_values in entity_properties.items():
+                                    if isinstance(property_values, list):
+                                        for value_item in property_values:
+                                            structured_data.append({
+                                                "h": entity_id,
+                                                "t": value_item,
+                                                "r": property_name
+                                            })
+                                    else:
                                         structured_data.append({
                                             "h": entity_id,
-                                            "t": value_item,
+                                            "t": property_values,
                                             "r": property_name
                                         })
-                                else:
-                                    structured_data.append({
-                                        "h": entity_id,
-                                        "t": property_values,
-                                        "r": property_name
-                                    })
+                    
+                    elif operation_mode == "relationship_mining":
+                        # Process relationship format
+                        for relation_category, relation_pairs in parsed_data.items():
+                            for pair_data in relation_pairs:
+                                structured_data.append({
+                                    "h": pair_data["subject"],
+                                    "t": pair_data["object"],
+                                    "r": relation_category
+                                })
+                else:
+                    raise json.JSONDecodeError("Invalid JSON structure", result_item, 0)
                 
-                elif operation_mode == "relationship_mining":
-                    # Process relationship format
-                    for relation_category, relation_pairs in parsed_data.items():
-                        for pair_data in relation_pairs:
-                            structured_data.append({
-                                "h": pair_data["subject"],
-                                "t": pair_data["object"],
-                                "r": relation_category
-                            })
-            else:
-                raise json.JSONDecodeError("Invalid JSON structure", result_item, 0)
-                
-        except json.JSONDecodeError as json_error:
-            print(f"JSON parsing error: {json_error} - Skipping invalid entry")
-            continue
-        except TypeError as type_error:
-            print(f"Type error: {type_error} - Skipping malformed entry")
-            continue
-        except AttributeError as attr_error:
-            print(f"Attribute error: {attr_error} - Skipping incomplete entry")
-            continue
-    
-    return structured_data
+            except json.JSONDecodeError as json_error:
+                print(f"JSON parsing error: {json_error} - Skipping invalid entry")
+                continue
+            except TypeError as type_error:
+                print(f"Type error: {type_error} - Skipping malformed entry")
+                continue
+            except AttributeError as attr_error:
+                print(f"Attribute error: {attr_error} - Skipping incomplete entry")
+                continue
+        
+        return structured_data
 
 
 if __name__ == "__main__":
-    # Initialize knowledge mining system
-    knowledge_miner = KnowledgeExtractorProcessor()
-    
-    # Process sample text
-    knowledge_miner.transform_text_to_knowledge_graph("sample_input.txt", 'extracted_knowledge.jsonl')
-    
-    # Alternative processing approach
-    source_document = ''
-    output_destination = ''
-    processing_text = ""
-    extraction_operation = "knowledge_synthesis"
-    
-    for text_chunk in _stream_text_chunks(source_document):
-        processing_text = text_chunk
-        
-        # Define comprehensive food schema
-        comprehensive_food_schema = [
-            {
-                "entity_type": "Food",
-                "attributes": {
-                    "Name": "The name of the food, including brand name, common name, or specialized chemical name",
-                    "Category": "The type of food, such as fruit, vegetable, meat, grain, seasoning, additive, probiotic, etc.",
-                    "Ingredients": "The main ingredients of the food, listing in detail including natural ingredients, additives, preservatives, nutritional fortifiers, etc.",
-                    "Nutritional Value": "The nutritional components of the food, summarizing the energy provided and main nutrients such as protein, fat, carbohydrates, vitamins, and minerals",
-                    "Processing Method": "The processing or preparation method of the food, including daily cooking, processing, and laboratory preparation methods, etc.",
-                    "Effect or Consumption Outcome": "The impact of the food on health or the body, possible effects or uses"
-                }
-            }
-        ]
-        
-        extraction_output = knowledge_miner.execute_knowledge_extraction(
-            content=processing_text, 
-            schema_definition=comprehensive_food_schema, 
-            operation_type=extraction_operation, 
-            lang_code="zh"
-        )
-        
-        formatted_results = _convert_output_to_structured_format(
-            raw_results=extraction_output, 
-            operation_mode=extraction_operation
-        )
-        
-        # Save results to file
-        with open(output_destination, 'a+', encoding='utf-8') as result_file:
-            for data_entry in formatted_results:
-                result_file.write(json.dumps(data_entry, ensure_ascii=False) + '\n')
-    
-    print(f"Knowledge extraction process completed. Results available in {output_destination}")
+    pass
