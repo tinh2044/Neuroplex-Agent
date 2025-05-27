@@ -47,6 +47,3 @@ def setup_logger(name, log_file=LOG_FILE, level=logging.DEBUG, console=True):
     return logger
 
 logger = setup_logger('Neuroplex_Logger', log_file=LOG_FILE)
-
-
-
