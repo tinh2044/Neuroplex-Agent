@@ -9,10 +9,11 @@ from PIL import Image
 from tqdm import tqdm
 import easyocr
 from llama_index.readers.file import PDFReader
-from ai_engine.utils import logger, is_text_pdf
+from ai_engine.utils.logging import logger
+from ai_engine.utils import is_text_pdf
 
 
-class EasyOcrProcessor:
+class OcrProcessor:
     """A class for performing OCR (Optical Character Recognition) on images and PDFs using EasyOCR.
 
     This class provides functionality to:
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--img", help="Path to image file")
     args = parser.parse_args()
 
-    processor = EasyOcrProcessor()
+    processor = OcrProcessor()
 
     if args.pdf:
         output_text = processor.extract_text_from_pdf(args.pdf)

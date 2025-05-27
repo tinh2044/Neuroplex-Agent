@@ -1,17 +1,18 @@
 """Handles model selection and initialization."""
 import os
 import traceback
-from ai_engine import agent_config
+from ai_engine.config import AgentConfig
 from ai_engine.utils.logging import logger
 from ai_engine.models.chat_model import OpenAIBase, OpenModel, CustomModel
 
 
 def select_model(model_provider=None, model_name=None):
     """Select model based on model provider"""
-    if hasattr(agent_config, "model_names"):
-        model_provider = model_provider or agent_config.model_provider
-        model_info = agent_config.model_names.get(model_provider, {})
-        model_name = model_name or agent_config.model_name or model_info.get("default", "")
+    config = AgentConfig()
+    if hasattr(config, "model_names"):
+        model_provider = model_provider or config.model_provider
+        model_info = config.model_names.get(model_provider, {})
+        model_name = model_name or config.model_name or model_info.get("default", "")
 
     logger.info("Selecting model from `%s` with `%s`", model_provider, model_name)
 
@@ -22,8 +23,8 @@ def select_model(model_provider=None, model_name=None):
         return OpenModel(model_name)
 
     if model_provider == "custom":
-        if hasattr(agent_config, "custom_models"):
-            model_info = next((x for x in agent_config.custom_models if x["custom_id"] == model_name), None)
+        if hasattr(config, "custom_models"):
+            model_info = next((x for x in config.custom_models if x["custom_id"] == model_name), None)
             if model_info is None:
                 raise ValueError("Model %s not found in custom models" % model_name)
 
