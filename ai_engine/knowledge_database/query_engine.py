@@ -5,10 +5,7 @@ This module provides advanced search functionality for the knowledge base.
 It combines vector similarity search with reranking to provide accurate
 and relevant search results.
 """
-
-from ai_engine import agent_config
-from ai_engine.utils import logger
-
+from ai_engine.configs.agent import AgentConfig
 
 class QueryEngine:
     """
@@ -21,7 +18,7 @@ class QueryEngine:
     - Retriever function creation
     """
     
-    def __init__(self, milvus_manager, embedding_manager, db_manager):
+    def __init__(self, milvus_manager, embedding_manager, db_manager, agent_config: AgentConfig):
         """
         Initialize the query engine.
         
@@ -34,9 +31,10 @@ class QueryEngine:
         self.embedding_manager = embedding_manager
         self.db_manager = db_manager
         
-        # Default thresholds
+        self.agent_config = agent_config
+        # Default thresholds from config
         self.default_distance_threshold = 0.5
-        self.default_rerank_threshold = 0.1
+        self.default_rerank_threshold = 0.15
         self.default_max_query_count = 20
     
     def search(self, query, collection_name, limit=3):
@@ -91,7 +89,7 @@ class QueryEngine:
         filtered_results = [r for r in all_results if r["distance"] > distance_threshold]
         
         # Apply reranking if enabled
-        if agent_config.enable_rerank and len(filtered_results) > 0 and self.embedding_manager.reranker:
+        if self.agent_config.enable_rerank and len(filtered_results) > 0 and self.embedding_manager.reranker:
             texts = [r["entity"]["text"] for r in filtered_results]
             rerank_scores = self.embedding_manager.compute_rerank_scores(query, texts)
             

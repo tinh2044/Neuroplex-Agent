@@ -12,10 +12,9 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from ai_engine import agent_config
 from ai_engine.models.knowledge import Base
 from ai_engine.utils import logger
-
+from ai_engine.configs.agent import AgentConfig
 
 class BaseDBManager:
     """
@@ -30,14 +29,15 @@ class BaseDBManager:
     All specialized database managers should inherit from this class.
     """
 
-    def __init__(self):
+    def __init__(self, agent_config: AgentConfig):
         """
         Initialize the database manager.
         
         Sets up the database connection, creates session factory,
         and ensures required tables exist.
         """
-        self.db_path = os.path.join(agent_config.workspace, "data", "knowledge.db")
+        self._agent_config = agent_config
+        self.db_path = os.path.join(str(agent_config.workspace), "data", "knowledge.db")
         self.ensure_db_dir()
 
         # Create SQLAlchemy engine
@@ -48,6 +48,10 @@ class BaseDBManager:
 
         # Ensure tables exist
         self.create_tables()
+    
+    @property
+    def agent_config(self):
+        return self._agent_config
 
     def ensure_db_dir(self):
         """

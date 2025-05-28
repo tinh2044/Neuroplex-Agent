@@ -10,7 +10,7 @@ from sqlalchemy.orm import joinedload
 
 from ai_engine.models.knowledge import KnowledgeFile
 from .base_manager import BaseDBManager
-
+from ai_engine.configs.agent import AgentConfig
 
 class FileManager(BaseDBManager):
     """
@@ -22,22 +22,24 @@ class FileManager(BaseDBManager):
     - Deleting files
     - Retrieving file information
     """
+    def __init__(self, agent_config: AgentConfig):
+        super().__init__(agent_config)
 
-    def add_file(self, db_id, file_id, filename, path, file_type, status="waiting"):
+    def add_file(self, db_id, uid, filename, path, kind, state="waiting"):
         """
         Add a new file to the knowledge base.
         
         Args:
             db_id (str): ID of the database to add the file to
-            file_id (str): Unique identifier for the file
+            uid (str): Unique identifier for the file
             filename (str): Original name of the file
             path (str): Path where the file is stored
-            file_type (str): Type/extension of the file
-            status (str, optional): Initial processing status. Defaults to "waiting"
+            kind (str): Type/extension of the file
+            state (str, optional): Initial processing status. Defaults to "waiting"
             
         Returns:
             dict: Added file information including:
-                - file_id: File identifier
+                - uid: File identifier
                 - filename: Original file name
                 - path: File path
                 - type: File type
@@ -47,26 +49,18 @@ class FileManager(BaseDBManager):
         """
         with self.get_session() as session:
             file = KnowledgeFile(
-                file_id=file_id,
-                database_id=db_id,
+                uid=uid,
+                repo_uid=db_id,
                 filename=filename,
                 path=path,
-                file_type=file_type,
-                status=status
+                kind=kind,
+                state=state
             )
             session.add(file)
             session.flush()
 
             # Return a dictionary instead of an object to avoid lazy loading issues after session closing
-            return {
-                "file_id": file_id,
-                "filename": filename,
-                "path": path,
-                "type": file_type,
-                "status": status,
-                "created_at": file.created_at.timestamp() if file.created_at else None,
-                "nodes": []
-            }
+            return file.as_dict()
 
     def update_file_status(self, file_id, status):
         """
@@ -80,9 +74,9 @@ class FileManager(BaseDBManager):
             bool: True if file was found and updated, False otherwise
         """
         with self.get_session() as session:
-            file = session.query(KnowledgeFile).filter_by(file_id=file_id).first()
+            file = session.query(KnowledgeFile).filter_by(uid=file_id).first()
             if file:
-                file.status = status
+                file.state = status
                 return True
             return False
 
@@ -99,7 +93,7 @@ class FileManager(BaseDBManager):
             bool: True if file was found and deleted, False otherwise
         """
         with self.get_session() as session:
-            file = session.query(KnowledgeFile).filter_by(file_id=file_id).first()
+            file = session.query(KnowledgeFile).filter_by(uid=file_id).first()
             if file:
                 session.delete(file)
                 return True
@@ -120,9 +114,9 @@ class FileManager(BaseDBManager):
         """
         with self.get_session() as session:
             files = session.query(KnowledgeFile).options(
-                joinedload(KnowledgeFile.nodes)
-            ).filter_by(database_id=db_id).all()
-            return [self._to_dict_safely(file) for file in files]
+                joinedload(KnowledgeFile.content_blocks)
+            ).filter_by(repo_uid=db_id).all()
+            return [file.as_dict() for file in files]
 
     def get_file_by_id(self, file_id):
         """
@@ -139,6 +133,6 @@ class FileManager(BaseDBManager):
         """
         with self.get_session() as session:
             file = session.query(KnowledgeFile).options(
-                joinedload(KnowledgeFile.nodes)
-            ).filter_by(file_id=file_id).first()
-            return self._to_dict_safely(file) if file else None
+                joinedload(KnowledgeFile.content_blocks)
+            ).filter_by(uid=file_id).first()
+            return file.as_dict() if file else None

@@ -8,7 +8,7 @@ the knowledge base.
 
 from ai_engine.models.knowledge import KnowledgeNode
 from .base_manager import BaseDBManager
-
+from ai_engine.configs.agent import AgentConfig
 
 class NodeManager(BaseDBManager):
     """
@@ -20,6 +20,8 @@ class NodeManager(BaseDBManager):
     - Searching nodes by content
     - Managing node metadata
     """
+    def __init__(self, agent_config: AgentConfig):
+        super().__init__(agent_config)
 
     def add_node(self, file_id, text, hash_value=None, start_char_idx=None, end_char_idx=None, metadata=None):
         """
@@ -45,25 +47,17 @@ class NodeManager(BaseDBManager):
         """
         with self.get_session() as session:
             node = KnowledgeNode(
-                file_id=file_id,
-                text=text,
+                file_uid=file_id,
+                content_text=text,
                 hash=hash_value,
-                start_char_idx=start_char_idx,
-                end_char_idx=end_char_idx,
-                meta_info=metadata or {}
+                start_pos=start_char_idx,
+                end_pos=end_char_idx,
+                metadata_extra=metadata or {}
             )
             session.add(node)
             session.flush()
 
-            return {
-                "id": node.id,
-                "file_id": file_id,
-                "text": text,
-                "hash": hash_value,
-                "start_char_idx": start_char_idx,
-                "end_char_idx": end_char_idx,
-                "metadata": metadata or {}
-            }
+            return node.as_dict()
 
     def get_nodes_by_file(self, file_id):
         """
@@ -76,8 +70,8 @@ class NodeManager(BaseDBManager):
             list: List of node information dictionaries
         """
         with self.get_session() as session:
-            nodes = session.query(KnowledgeNode).filter_by(file_id=file_id).all()
-            return [self._to_dict_safely(node) for node in nodes]
+            nodes = session.query(KnowledgeNode).filter_by(file_uid=file_id).all()
+            return [node.as_dict() for node in nodes]
 
     def get_nodes_by_filter(self, file_id=None, search_text=None, limit=100):
         """
@@ -94,8 +88,8 @@ class NodeManager(BaseDBManager):
         with self.get_session() as session:
             query = session.query(KnowledgeNode)
             if file_id:
-                query = query.filter_by(file_id=file_id)
+                query = query.filter_by(file_uid=file_id)
             if search_text:
-                query = query.filter(KnowledgeNode.text.like(f"%{search_text}%"))
+                query = query.filter(KnowledgeNode.content_text.like(f"%{search_text}%"))
             nodes = query.limit(limit).all()
-            return [self._to_dict_safely(node) for node in nodes]
+            return [node.as_dict() for node in nodes]

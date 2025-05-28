@@ -8,9 +8,8 @@ computing similarity scores for search results reranking.
 
 from ai_engine.models.embedding import initialize_embedding
 from ai_engine.models.rerank_model import initialize_reranker
-from ai_engine import agent_config
 from ai_engine.utils import logger
-
+from ai_engine.configs.agent import AgentConfig
 
 class EmbeddingManager:
     """
@@ -22,7 +21,7 @@ class EmbeddingManager:
     - Model compatibility checking
     """
     
-    def __init__(self):
+    def __init__(self, agent_config: AgentConfig):
         """
         Initialize the embedding manager.
         
@@ -30,6 +29,7 @@ class EmbeddingManager:
         """
         self.embed_model = None
         self.reranker = None
+        self.agent_config = agent_config
         self._initialize_models()
     
     def _initialize_models(self):
@@ -42,18 +42,18 @@ class EmbeddingManager:
         
         Handles initialization failures gracefully with logging.
         """
-        if not agent_config.enable_kb:
+        if not self.agent_config.enable_kb:
             return
         
         try:
-            self.embed_model = initialize_embedding(agent_config)
+            self.embed_model = initialize_embedding(self.agent_config)
             logger.info(f"Embedding model initialized: {self.embed_model.embed_model_fullname}")
         except Exception as e:
             logger.error(f"Failed to initialize embedding model: {e}")
             
-        if agent_config.enable_rerank:
+        if self.agent_config.enable_rerank:
             try:
-                self.reranker = initialize_reranker(agent_config)
+                self.reranker = initialize_reranker(self.agent_config)
                 logger.info("Reranker model initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize reranker: {e}")

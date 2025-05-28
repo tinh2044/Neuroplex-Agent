@@ -6,10 +6,12 @@ It handles CRUD operations for knowledge base databases and their metadata.
 """
 
 from sqlalchemy.orm import joinedload
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 from ai_engine.models.knowledge import KnowledgeDatabase, KnowledgeFile
 from .base_manager import BaseDBManager
-
+from ai_engine.configs.agent import AgentConfig
 
 class DatabaseManager(BaseDBManager):
     """
@@ -21,6 +23,38 @@ class DatabaseManager(BaseDBManager):
     - Deleting databases
     - Managing database metadata
     """
+
+    def __init__(self, agent_config: AgentConfig):
+        """Initialize the database manager.
+        
+        Args:
+            agent_config: Agent configuration object containing database settings.
+        """
+        super().__init__(agent_config)
+        self._knowledge_models = None
+        self._agent_config = agent_config
+        self._setup_database()
+
+    @property
+    def knowledge_models(self):
+        """Lazy load knowledge models."""
+        if self._knowledge_models is None:
+            from ai_engine.models.knowledge import KnowledgeDatabase, KnowledgeFile
+            self._knowledge_models = (KnowledgeDatabase, KnowledgeFile)
+        return self._knowledge_models
+
+    @property
+    def agent_config(self):
+        """Lazy load agent config."""
+        if self._agent_config is None:
+            from ai_engine import agent_config
+            self._agent_config = agent_config
+        return self._agent_config
+
+    def _setup_database(self):
+        """Set up the database connection and tables."""
+        KnowledgeDatabase, KnowledgeFile = self.knowledge_models
+        # Rest of the setup code...
 
     def get_all_databases(self):
         """
@@ -35,11 +69,11 @@ class DatabaseManager(BaseDBManager):
         with self.get_session() as session:
             # Use eager loading to load associated files
             databases = session.query(KnowledgeDatabase).options(
-                joinedload(KnowledgeDatabase.files)
+                joinedload(KnowledgeDatabase.related_files)
             ).all()
 
             # Convert to dictionary and return, avoid subsequent lazy loading
-            return [self._to_dict_safely(db) for db in databases]
+            return [db.as_dict() for db in databases]
 
     def get_database_by_id(self, db_id):
         """
@@ -57,11 +91,11 @@ class DatabaseManager(BaseDBManager):
         with self.get_session() as session:
             # Use eager loading to load associated files
             db = session.query(KnowledgeDatabase).options(
-                joinedload(KnowledgeDatabase.files).joinedload(KnowledgeFile.nodes)
-            ).filter_by(db_id=db_id).first()
+                joinedload(KnowledgeDatabase.related_files).joinedload(KnowledgeFile.content_blocks)
+            ).filter_by(uid=db_id).first()
 
             # Convert to dictionary and return, avoid subsequent lazy loading
-            return self._to_dict_safely(db) if db else None
+            return db.as_dict() if db else None
 
     def create_database(self, db_id, name, description, embed_model=None, dimension=None, metadata=None):
         """
@@ -77,36 +111,26 @@ class DatabaseManager(BaseDBManager):
             
         Returns:
             dict: Created database information including:
-                - db_id: Database identifier
+                - uid: Database identifier
                 - name: Database name
                 - description: Database description
-                - embed_model: Embedding model name
+                - embedding: Embedding model name
                 - dimension: Vector dimension
                 - metadata: Additional metadata
                 - files: Empty files dictionary
         """
         with self.get_session() as session:
             db = KnowledgeDatabase(
-                db_id=db_id,
+                uid=db_id,
                 name=name,
                 description=description,
-                embed_model=embed_model,
+                embedding=embed_model,
                 dimension=dimension,
-                meta_info=metadata or {}  
+                metadata_extra=metadata or {}
             )
             session.add(db)
-            session.flush()  
-
-            db_dict = {
-                "db_id": db_id,
-                "name": name,
-                "description": description,
-                "embed_model": embed_model,
-                "dimension": dimension,
-                "metadata": metadata or {}, 
-                "files": {}
-            }
-            return db_dict
+            session.flush()
+            return db.as_dict()
 
     def delete_database(self, db_id):
         """
@@ -121,7 +145,7 @@ class DatabaseManager(BaseDBManager):
             bool: True if database was found and deleted, False otherwise
         """
         with self.get_session() as session:
-            db = session.query(KnowledgeDatabase).filter_by(db_id=db_id).first()
+            db = session.query(KnowledgeDatabase).filter_by(uid=db_id).first()
             if db:
                 session.delete(db)
                 return True

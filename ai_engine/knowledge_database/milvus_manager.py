@@ -11,9 +11,8 @@ It handles all vector storage operations including:
 
 import os
 from pymilvus import MilvusClient, MilvusException
-from ai_engine import agent_config
 from ai_engine.utils import logger
-
+from ai_engine.configs.agent import AgentConfig
 class MilvusManager:
     """
     Milvus vector database manager.
@@ -25,7 +24,7 @@ class MilvusManager:
     - Search functionality
     """
     
-    def __init__(self):
+    def __init__(self, agent_config: AgentConfig):
         """
         Initialize the Milvus manager.
         
