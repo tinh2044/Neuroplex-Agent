@@ -88,7 +88,7 @@ def read_text(file, params=None):
 
     if file.endswith(".pdf"):
         from ai_engine.tools import ocr
-        return ocr.process_pdf(file)
+        return ocr.extract_text_from_pdf(file)
 
     elif file.endswith(".txt") or file.endswith(".md"):
         return plainreader(file)

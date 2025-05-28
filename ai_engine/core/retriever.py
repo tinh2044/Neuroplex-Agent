@@ -1,6 +1,6 @@
-import traceback
-
-from ai_engine import agent_config, graph_database, knowledge_base
+"""
+Core retriever module for the AI Engine.
+"""
 from ai_engine.utils.logging import logger
 from ai_engine.models import select_model
 from ai_engine.core.operators import HyDEOperator
@@ -9,19 +9,40 @@ from ai_engine.utils.web_search import WebSearcher
 from ai_engine.utils.prompts import KEYWORD_EXTRACTION_PROMPT, NER_PROMPT_TEMPLATE, KNOWBASE_QA_TEMPLATE, QUERY_REWRITE_PROMPT_FLEXIBLE
 
 class Retriever:
-    def __init__(self):
+    """Retriever class for handling data retrieval operations."""
+    
+    def __init__(self, agent_config, graph_database, knowledge_base):
+        """Initialize the retriever."""
+        self._agent_config = agent_config
+        self._graph_database = graph_database
+        self._knowledge_base = knowledge_base
         self._load_models()
 
-    def _load_models(self):
-        if hasattr(agent_config, "enable_reranker") and agent_config.enable_reranker:
-            self.reranker = initialize_reranker(agent_config)
+    @property
+    def agent_config(self):
+        """Lazy load agent_config."""
+        return self._agent_config
 
-        if hasattr(agent_config, "enable_websearch") and agent_config.enable_websearch:
+    @property
+    def graph_database(self):
+        """Lazy load graph_database."""
+        return self._graph_database
+
+    @property
+    def knowledge_base(self):
+        """Lazy load knowledge_base."""
+        return self._knowledge_base
+
+    def _load_models(self):
+        if hasattr(self._agent_config, "enable_reranker") and bool(self._agent_config.enable_reranker):
+            self.reranker = initialize_reranker(self._agent_config)
+
+        if hasattr(self._agent_config, "enable_websearch") and bool(self._agent_config.enable_websearch):
             self.web_searcher = WebSearcher()
 
     def retrieval(self, query, history, meta):
         refs = {"query": query, "history": history, "meta": meta}
-        refs["model_name"] = agent_config.model
+        refs["model_name"] = self._agent_config.model
         refs["entities"] = self.reco_entities(query, history, refs)
         refs["knowledge_base"] = self.query_knowledgebase(query, history, refs)
         refs["graph_base"] = self.query_graph(query, history, refs)
@@ -76,15 +97,14 @@ class Retriever:
 
     def query_graph(self, query, history, refs):
         results = []
-        if refs["meta"].get("use_graph") and agent_config.enable_kb:
+        if refs["meta"].get("use_graph") and self.agent_config.enable_kb:
             for entity in refs["entities"]:
                 if entity == "":
                     continue
-                result = graph_database.get_sample_nodes(entity)
+                result = self.graph_database.get_sample_nodes(entity)
                 if result != []:
                     results.extend(result)
-        return {"results": graph_database.format_query_results(results)}
-
+        return {"results": self.graph_database.format_query_results(results)}
 
     def query_knowledgebase(self, query, history, refs):
         """Query knowledge base"""
@@ -99,14 +119,14 @@ class Retriever:
         meta = refs["meta"]
 
         db_id = meta.get("db_id")
-        if not db_id or not agent_config.enable_kb:
+        if not db_id or not self.agent_config.enable_kb:
             response["message"] = "The knowledge base is not enabled, or the knowledge base is not specified, or the knowledge base does not exist"
             return response
 
         rw_query = self.rewrite_query(query, history, refs)
 
         logger.debug(f"{meta=}")
-        query_result = knowledge_base.query(query=rw_query,
+        query_result = self.knowledge_base.query(query=rw_query,
                                             db_id=db_id,
                                             distance_threshold=meta.get("distanceThreshold", 0.5),
                                             rerank_threshold=meta.get("rerankThreshold", 0.1),
@@ -122,7 +142,7 @@ class Retriever:
     def query_web(self, query, history, refs):
         """Query web"""
 
-        if not (refs["meta"].get("use_web") or not agent_config.enable_websearch):
+        if not (refs["meta"].get("use_web") or not self.agent_config.enable_websearch):
             return {"results": [], "message": "Web search is disabled"}
 
         try:
@@ -135,13 +155,13 @@ class Retriever:
 
     def rewrite_query(self, query, history, refs):
         """Rewrite query"""
-        model_provider = agent_config.provider
-        model_name = agent_config.model
+        model_provider = self.agent_config.provider
+        model_name = self.agent_config.model
         model = select_model(model_provider=model_provider, model_name=model_name)
         if refs["meta"].get("mode") == "search":  # If it is a search mode, use the meta configuration, otherwise use the global configuration
             rewrite_query_span = refs["meta"].get("use_rewrite_query", "off")
         else:
-            rewrite_query_span = agent_config.query_mode
+            rewrite_query_span = self.agent_config.query_mode
 
         if rewrite_query_span == "off":
             rewritten_query = query
@@ -152,7 +172,7 @@ class Retriever:
             rewritten_query = model.generate_response(rewritten_query_prompt).content
 
         if rewrite_query_span == "hyde":
-            res = HyDEOperator.execute(model_callable=model.generate_response, query=query, context_str=history_query)
+            res = HyDEOperator.execute(llm_handler=model.generate_response, user_question=query, related_context=history_query)
             rewritten_query = res.content
 
         return rewritten_query
@@ -160,8 +180,8 @@ class Retriever:
     def reco_entities(self, query, history, refs):
         """Recognize entities in the sentence"""
         query = refs.get("rewritten_query", query)
-        model_provider = agent_config.provider
-        model_name = agent_config.model
+        model_provider = self.agent_config.provider
+        model_name = self.agent_config.model
         model = select_model(model_provider=model_provider, model_name=model_name)
 
         entities = []
