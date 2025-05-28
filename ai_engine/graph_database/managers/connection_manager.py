@@ -6,7 +6,7 @@ This module handles all connection-related operations for the graph database sys
 from typing import Optional
 from neo4j import GraphDatabase, Driver, Session
 from ai_engine.utils.logging import logger
-
+from ai_engine.configs.agent import AgentConfig
 from ai_engine.graph_database.exceptions import Neo4jConnectionError
 from ai_engine.graph_database.config import GraphDatabaseConfig
 
@@ -19,14 +19,14 @@ class Neo4jConnectionManager:
         >>> conn_mgr = Neo4jConnectionManager()
         >>> session = conn_mgr.get_session()
     """
-    def __init__(self, config: Optional[GraphDatabaseConfig] = None) -> None:
+    def __init__(self, agent_config: AgentConfig) -> None:
         """
         Initialize the connection manager.
 
         Args:
             config (Optional[GraphDatabaseConfig]): Configuration object. If None, uses default config.
         """
-        self.config = config or GraphDatabaseConfig()
+        self.config = GraphDatabaseConfig(agent_config)
         self._driver: Optional[Driver] = None
         self._status: str = "closed"
         self.db_name: str = self.config.NEO4J_DB_NAME

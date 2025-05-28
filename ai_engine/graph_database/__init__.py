@@ -1,7 +1,7 @@
 """Graph Database Package - Modular Neo4j Interface"""
 
-from .graph_database_manager import GraphDatabaseManager
-from .managers import (
+from ai_engine.graph_database.graph_database_manager import GraphDatabaseManager
+from ai_engine.graph_database.managers import (
     Neo4jConnectionManager,
     EntityManager, 
     EmbeddingManager,

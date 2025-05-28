@@ -21,14 +21,14 @@ class MetadataManager:
         >>> meta_mgr = MetadataManager()
         >>> meta_mgr.save_graph_info({...})
     """
-    def __init__(self, work_dir: Optional[str] = None) -> None:
+    def __init__(self, config: Optional[GraphDatabaseConfig] = None, work_dir: Optional[str] = None) -> None:
         """
         Initialize the metadata manager.
 
         Args:
             work_dir (Optional[str]): Working directory for metadata files.
         """
-        self.work_dir = work_dir or os.path.join(GraphDatabaseConfig.SAVE_DIR, "knowledge_graph", GraphDatabaseConfig.NEO4J_DB_NAME)
+        self.work_dir = work_dir or os.path.join(config.SAVE_DIR, "knowledge_graph", config.NEO4J_DB_NAME)
         os.makedirs(self.work_dir, exist_ok=True)
         self.info_file_path = os.path.join(self.work_dir, "graph_info.json")
 

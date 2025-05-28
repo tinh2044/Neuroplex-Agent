@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from ai_engine.graph_database import GraphDatabaseManager, GraphDatabase
-
+from ai_engine import agent_config
 @pytest.fixture
 def graph_db():
     with patch('ai_engine.graph_database.managers.Neo4jConnectionManager') as MockConnMgr, \
@@ -10,7 +10,7 @@ def graph_db():
          patch('ai_engine.graph_database.managers.QueryManager') as MockQueryMgr, \
          patch('ai_engine.graph_database.managers.MetadataManager') as MockMetaMgr, \
          patch('ai_engine.graph_database.managers.DataTransformer') as MockDataTrans:
-        db = GraphDatabaseManager()
+        db = GraphDatabaseManager(agent_config)
         db.connection_manager = MockConnMgr()
         db.entity_manager = MockEntityMgr()
         db.embedding_manager = MockEmbedMgr()

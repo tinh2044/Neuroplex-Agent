@@ -4,10 +4,10 @@ from ai_engine.graph_database import (
     GraphDatabaseManager, GraphDatabase,
     Neo4jConnectionManager, EntityManager, EmbeddingManager, QueryManager, MetadataManager, DataTransformer
 )
-
+from ai_engine import agent_config
 @pytest.fixture
 def mock_connection_manager():
-    mgr = Neo4jConnectionManager()
+    mgr = Neo4jConnectionManager(agent_config)
     mgr.connect = MagicMock()
     mgr.disconnect = MagicMock()
     mgr.is_connected = MagicMock(return_value=True)
@@ -20,7 +20,7 @@ def mock_connection_manager():
 def graph_db(mock_connection_manager):
     # Patch managers to use the mock connection manager
     with patch('ai_engine.graph_database.managers.Neo4jConnectionManager', return_value=mock_connection_manager):
-        db = GraphDatabaseManager()
+        db = GraphDatabaseManager(agent_config)
         db.connection_manager = mock_connection_manager
         db.entity_manager.connection_manager = mock_connection_manager
         db.embedding_manager.connection_manager = mock_connection_manager

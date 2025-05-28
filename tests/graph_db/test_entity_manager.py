@@ -2,10 +2,10 @@ import pytest
 from unittest.mock import MagicMock
 from ai_engine.graph_database.managers.entity_manager import EntityManager
 from ai_engine.graph_database.managers.connection_manager import Neo4jConnectionManager
-
+from ai_engine import agent_config
 @pytest.fixture
 def mock_connection_manager():
-    mgr = Neo4jConnectionManager()
+    mgr = Neo4jConnectionManager(agent_config)
     mgr.get_session = MagicMock()
     return mgr
 

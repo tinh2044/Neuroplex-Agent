@@ -2,11 +2,12 @@ import pytest
 from unittest.mock import MagicMock, patch
 from ai_engine.graph_database.managers.connection_manager import Neo4jConnectionManager
 from ai_engine.graph_database.config import GraphDatabaseConfig
+from ai_engine import agent_config
 
 @pytest.fixture
 def config():
     """Create a config object."""
-    return GraphDatabaseConfig()
+    return GraphDatabaseConfig(agent_config)
 
 @pytest.fixture
 def connection_manager(config):

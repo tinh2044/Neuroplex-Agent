@@ -4,10 +4,8 @@ GraphDatabaseManager - Facade for modular graph database system
 This module provides the main interface for interacting with the modular graph database system.
 """
 from typing import Optional, List, Dict, Any
-import logging
-
-from .config import GraphDatabaseConfig
-from .managers import (
+from ai_engine.graph_database.config import GraphDatabaseConfig
+from ai_engine.graph_database.managers import (
     Neo4jConnectionManager,
     EntityManager,
     EmbeddingManager,
@@ -15,8 +13,6 @@ from .managers import (
     MetadataManager,
     DataTransformer
 )
-
-logger = logging.getLogger(__name__)
 
 class GraphDatabaseManager:
     """
@@ -26,19 +22,19 @@ class GraphDatabaseManager:
         >>> db = GraphDatabaseManager()
         >>> db.add_entities([...])
     """
-    def __init__(self, config: Optional[GraphDatabaseConfig] = None) -> None:
+    def __init__(self, agent_config) -> None:
         """
         Initialize the graph database manager and all sub-managers.
 
         Args:
-            config (Optional[GraphDatabaseConfig]): Configuration object.
+           agent_config (AgentConfig): Agent configuration object.
         """
-        self.config = config or GraphDatabaseConfig()
+        self.config = GraphDatabaseConfig(agent_config)
         self.connection_manager = Neo4jConnectionManager(self.config)
         self.entity_manager = EntityManager(self.connection_manager)
         self.embedding_manager = EmbeddingManager(self.connection_manager)
         self.query_manager = QueryManager(self.connection_manager)
-        self.metadata_manager = MetadataManager()
+        self.metadata_manager = MetadataManager(self.config)
         self.data_transformer = DataTransformer()
 
     # --- Entity Operations ---

@@ -2,37 +2,43 @@
 Configuration management for the modular graph database system.
 """
 import os
-from typing import Optional
+from ai_engine.configs.agent import BaseConfig, AgentConfig
 
-class GraphDatabaseConfig:
+class GraphDatabaseConfig(BaseConfig):
     """
     Centralized configuration for the graph database system.
     Reads from environment variables with default values.
     """
-    NEO4J_URI: str = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-    NEO4J_USERNAME: str = os.environ.get("NEO4J_USERNAME", "neo4j")
-    NEO4J_PASSWORD: str = os.environ.get("NEO4J_PASSWORD", "0123456789")
-    NEO4J_DB_NAME: str = os.environ.get("NEO4J_DB_NAME", "neo4j")
-    ENABLE_KNOWLEDGE_GRAPH: bool = os.environ.get("ENABLE_KNOWLEDGE_GRAPH", "1") == "1"
-    ENABLE_KNOWLEDGE_BASE: bool = os.environ.get("ENABLE_KNOWLEDGE_BASE", "1") == "1"
-    SAVE_DIR: str = os.environ.get("GRAPH_SAVE_DIR", os.path.join(os.getcwd(), "data"))
-    EMBED_MODEL: Optional[str] = os.environ.get("EMBED_MODEL", None)
-    # Add more config parameters as needed
+    def __init__(self, agent_config: AgentConfig):
+        """Initialize configuration by reading from environment variables."""
+        super().__init__()
+        # Copy configuration from agent_config
+        self.update(agent_config)
+        
+        # Set database specific configurations
+        self.NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+        self.NEO4J_USERNAME = os.environ.get("NEO4J_USERNAME", "neo4j")
+        self.NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "0123456789")
+        self.NEO4J_DB_NAME = os.environ.get("NEO4J_DB_NAME", "neo4j")
+        
+        # Set derived configurations
+        self.ENABLE_KNOWLEDGE_GRAPH = self.enable_graph
+        self.ENABLE_KNOWLEDGE_BASE = self.enable_kb
+        self.SAVE_DIR = os.path.join(self.workspace, "graph_database")
+        self.EMBED_MODEL = self.embed_model
+        
+        self.validate()
 
-    @classmethod
-    def validate(cls):
+    def validate(self):
         """
         Validate the configuration parameters.
         """
-        if not cls.NEO4J_URI:
+        if not self.NEO4J_URI:
             raise ValueError("NEO4J_URI must be set.")
-        if not cls.NEO4J_USERNAME:
+        if not self.NEO4J_USERNAME:
             raise ValueError("NEO4J_USERNAME must be set.")
-        if not cls.NEO4J_PASSWORD:
+        if not self.NEO4J_PASSWORD:
             raise ValueError("NEO4J_PASSWORD must be set.")
-
-    def __init__(self):
-        self.validate()
 
     def get_config(self):
         """

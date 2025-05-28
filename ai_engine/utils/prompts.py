@@ -20,6 +20,22 @@ Please use the retrieved information to answer the question. When answering, avo
 </Question>
 """
 
+KNOWBASE_QA_TEMPLATE = """
+You are a knowledgeable assistant helping to answer questions based on the provided knowledge base content.
+Please provide accurate and relevant answers based on the given context.
+
+<Context>
+{context}
+</Context>
+
+<Question>
+{query}
+</Question>
+
+Answer the question based on the context above. If the context doesn't contain enough information to answer the question, say so.
+Be concise but informative. Use natural language and avoid technical jargon unless necessary.
+"""
+
 QUERY_REWRITE_PROMPT_STRICT = """
 <Instruction>Based on the provided historical information, refine and rewrite the question. The rewritten question must strictly follow the content and formatting requirements. No prohibited content is allowed.<Instruction>
 <Prohibited>1. Do not invent unrelated content. If no rewrite is needed, return the original question.
