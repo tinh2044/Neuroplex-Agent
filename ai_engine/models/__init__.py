@@ -1,7 +1,7 @@
 """Handles model selection and initialization."""
 import os
 import traceback
-from ai_engine.config import AgentConfig
+from ai_engine.configs.agent import AgentConfig
 from ai_engine.utils.logging import logger
 from ai_engine.models.chat_model import OpenAIBase, OpenModel, CustomModel
 

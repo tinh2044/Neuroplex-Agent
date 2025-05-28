@@ -5,7 +5,6 @@ import asyncio
 import requests
 from FlagEmbedding import FlagModel
 
-from ai_engine import agent_config
 from ai_engine.utils import hashstr, logger, get_docker_safe_url
 
 
@@ -33,9 +32,9 @@ class BaseEmbeddingModel:
             return self.dimension
 
         if hasattr(self, "embed_model_fullname"):
-            return agent_config.embed_model_names[self.embed_model_fullname].get("dimension", None)
+            return self.config.embed_model_names[self.embed_model_fullname].get("dimension", None)
         if hasattr(self, "model"):
-            return agent_config.embed_model[self.model].get("dimension", None)
+            return self.config.embed_model[self.model].get("dimension", None)
         return None
 
     def vectorize(self, input_data):
@@ -161,6 +160,7 @@ class LocalEmbeddingModel(FlagModel, BaseEmbeddingModel):
             **kwargs: Additional keyword arguments passed to the FlagModel constructor.
         """
         model_meta = config.embed_model_names[config.embed_model]
+        self.config = config
 
         self.model = config.model_local_paths.get(model_meta["name"], model_meta.get("local_path"))
         self.model = self.model or model_meta["name"]
@@ -316,13 +316,13 @@ def initialize_embedding(config):
     Raises:
         AssertionError: If `config.embed_model` is not found in `config.embed_model_names`.
     """
-    if not config.enable_knowledge_base:
+    if not config.enable_kb:
         return None
+    embed_model = str(config.embed_model)
+    provider, _ = embed_model.split('/', 1)
+    assert embed_model in config.embed_model, f"Unsupported model: {embed_model}"
 
-    provider, _ = config.embed_model.split('/', 1)
-    assert config.embed_model in config.embed_model_names, f"Unsupported model: {config.embed_model}"
-
-    logger.debug("Initializing embedding model `%s`...", config.embed_model)
+    logger.debug("Initializing embedding model `%s`...", embed_model)
 
     if provider == "local":
         return LocalEmbeddingModel(config)

@@ -35,12 +35,12 @@ def initialize_reranker(cfg):
     """
     Constructs and returns a reranker instance using the given configuration.
     """
-    supported_keys = cfg.reranker_names.keys()
+    supported_keys = cfg.ranker.keys()
     if cfg.reranker not in supported_keys:
-        raise ValueError(f"Unsupported Reranker: {cfg.reranker}, supported options: {supported_keys}")
+        raise ValueError(f"Unsupported Reranker: {cfg.ranker}, supported options: {supported_keys}")
 
-    provider_type, _ = cfg.reranker.split('/', 1)
+    provider_type, _ = cfg.ranker.split('/', 1)
     if provider_type in {"local", "FlagEmbedding", "huggingface"}:
         return LocalReranker(cfg)
     else:
-        raise ValueError(f"Unsupported provider: {cfg.reranker}, allowed: {supported_keys}")
+        raise ValueError(f"Unsupported provider: {cfg.ranker}, allowed: {supported_keys}")
