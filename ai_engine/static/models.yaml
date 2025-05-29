@@ -1,0 +1,72 @@
+MODEL_NAMES:
+  openai:
+    name: OpenAI
+    url: https://platform.openai.com/docs/models
+    default: gpt-3.5-turbo
+    env:
+      - OPENAI_API_KEY
+    models:
+      - gpt-4
+      - gpt-4o
+      - gpt-4o-mini
+      - gpt-3.5-turbo
+  deepseek:
+    name: DeepSeek
+    url: https://platform.deepseek.com/api-docs/zh-cn/pricing
+    default: deepseek-chat
+    base_url: https://api.deepseek.com/v1
+    env:
+      - DEEPSEEK_API_KEY
+    models:
+      - deepseek-chat
+      - deepseek-reasoner
+  qwen:
+    name: Qwen
+    url: https://qwen.aliyun.com/docs/api/qwen-chat
+    default: qwen-chat
+    base_url: https://qwen.aliyun.com/api
+    env:
+      - QWEN_API_KEY
+    models:
+      - qwen-chat
+      - qwen-reasoner
+      - qwen-code
+  anthropic:
+    name: Anthropic
+    url: https://docs.anthropic.com/en/api/reference
+    default: claude-3-5-sonnet
+    base_url: https://api.anthropic.com/v1
+    env:
+      - ANTHROPIC_API_KEY
+    models:
+      - claude-3-5-sonnet
+      - claude-3-5-haiku
+      - claude-3-haiku
+      - claude-3-sonnet
+      - claude-3-opus
+
+EMBED_MODEL_INFO:
+  local/BAAI/bge-m3:
+    name: BAAI/bge-m3
+    dimension: 1024
+
+  zhipu/zhipu-embedding-2:
+    name: embedding-2
+    dimension: 1024
+
+  zhipu/zhipu-embedding-3:
+    name: embedding-3
+    dimension: 2048
+
+  ollama/nomic-embed-text:
+    name: nomic-embed-text
+    dimension: 768
+
+  ollama/bge-m3:
+    name: bge-m3
+    dimension: 1024
+
+RERANKER_LIST:
+
+  local/BAAI/bge-reranker-v2-m3:
+    name: BAAI/bge-reranker-v2-m3
