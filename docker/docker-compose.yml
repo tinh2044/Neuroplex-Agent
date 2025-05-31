@@ -1,0 +1,140 @@
+services:
+  graph:
+    image: neo4j:latest
+    container_name: graph-dev
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./volumes/neo4j/data:/data
+      - ./volumes/neo4j/logs:/var/lib/neo4j/logs
+    environment:
+      - NEO4J_AUTH=neo4j/neuroplex-12345678
+      - NEO4J_server_bolt_listen__address=0.0.0.0:7687
+      - NEO4J_server_http_listen__address=0.0.0.0:7474
+      - ENTITY_EMBEDDING=true
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "neuroplex-12345678", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - app-network
+
+  etcd:
+    container_name: milvus-etcd-dev
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+      - ETCD_MAX_REQUEST_BYTES=33554432
+      - ETCD_MAX_TXNS_IN_FLIGHT=2048
+    volumes:
+      - ./volumes/milvus/etcd:/etcd
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "etcdctl", "--endpoints=http://etcd:2379", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - app-network
+
+  minio:
+    container_name: milvus-minio-dev
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: neuroplex-minio
+      MINIO_ROOT_PASSWORD: neuroplex-minio
+      MINIO_REGION: us-east-1
+      MINIO_BROWSER: "on"
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    volumes:
+      - ./volumes/milvus/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - app-network
+
+  milvus:
+    image: milvusdb/milvus:latest
+    container_name: milvus-standalone-dev
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MILVUS_LOG_LEVEL: debug
+      MILVUS_GRPC_KEEPALIVE_TIME: 60
+      MILVUS_GRPC_KEEPALIVE_TIMEOUT: 20
+      MILVUS_GRPC_INITIAL_WINDOW_SIZE: 65536
+      MILVUS_GRPC_MAX_SEND_SIZE: 33554432
+      MILVUS_GRPC_MAX_RECV_SIZE: 33554432
+    volumes:
+      - ./volumes/milvus/milvus:/var/lib/milvus
+      - ./volumes/milvus/logs:/var/lib/milvus/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
