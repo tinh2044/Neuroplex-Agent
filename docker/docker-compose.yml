@@ -99,12 +99,20 @@ services:
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY: neuroplex-minio
+      MINIO_SECRET_KEY: neuroplex-minio
       MILVUS_LOG_LEVEL: debug
+      MILVUS_ENABLE_STANDALONE_EMBEDDED: "true"
+      MILVUS_ROOTCOORD_ADDRESS: "localhost:19530"
+      MILVUS_PROXY_PORT: "19530"
+      MILVUS_USE_ROCKSMQ_STANDALONE: "true"
       MILVUS_GRPC_KEEPALIVE_TIME: 60
       MILVUS_GRPC_KEEPALIVE_TIMEOUT: 20
       MILVUS_GRPC_INITIAL_WINDOW_SIZE: 65536
       MILVUS_GRPC_MAX_SEND_SIZE: 33554432
       MILVUS_GRPC_MAX_RECV_SIZE: 33554432
+      GOTRACEBACK: crash
+      GOMEMLIMIT: 7GiB
     volumes:
       - ./volumes/milvus/milvus:/var/lib/milvus
       - ./volumes/milvus/logs:/var/lib/milvus/logs
@@ -116,6 +124,16 @@ services:
         reservations:
           cpus: '2'
           memory: 4G
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+      core:
+        soft: -1
+        hard: -1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
       interval: 30s
@@ -126,8 +144,10 @@ services:
       - "19530:19530"
       - "9091:9091"
     depends_on:
-      - "etcd"
-      - "minio"
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - app-network
 
