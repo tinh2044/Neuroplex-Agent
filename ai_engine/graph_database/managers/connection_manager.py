@@ -107,7 +107,7 @@ class Neo4jConnectionManager:
             if db_name in existing_db_names:
                 logger.info("Database '%s' already exists.", db_name)
                 return db_name
-            session.run("CREATE DATABASE %s" % db_name)
+            session.run(f"CREATE DATABASE {db_name}")
             logger.info("Database '%s' created successfully.", db_name)
             return db_name
         except Exception as e:

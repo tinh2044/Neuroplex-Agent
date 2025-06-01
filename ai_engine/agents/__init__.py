@@ -2,6 +2,9 @@ from ai_engine.agents.chatbot import ChatbotAgent
 from ai_engine.agents.react import ReActAgent
 
 class AgentManager:
+    """
+    
+    """
     def __init__(self):
         self.agents = {}
 
@@ -25,9 +28,4 @@ __all__ = ["agent_manager"]
 
 if __name__ == "__main__":
     agent = agent_manager.get_agent("chatbot")
-    conf = agent_manager.get_configuration("chatbot")
-    agent_info = {
-        "name": agent.name,
-        "description": agent.description,
-    }
-    print(agent_info)
+    

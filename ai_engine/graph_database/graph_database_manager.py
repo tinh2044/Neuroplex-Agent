@@ -126,6 +126,3 @@ class GraphDatabaseManager:
     def use_database(self, db_name: str) -> None:
         """Switch to the specified database."""
         return self.connection_manager.use_database(db_name)
-
-    # --- Backward Compatibility Layer ---
-    # Add deprecated methods or aliases here as needed 

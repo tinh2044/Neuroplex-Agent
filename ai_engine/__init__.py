@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from ai_engine.knowledge_database.kb_db_manager import KBDBManager
 from ai_engine.knowledge_database import KnowledgeBase
 from ai_engine.graph_database import GraphDatabase
-from .configs.agent import AgentConfig
 from ai_engine.core.retriever import Retriever
+from .configs.agent import AgentConfig
 
 load_dotenv("ai_engine/.env")
 

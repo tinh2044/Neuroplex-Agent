@@ -63,7 +63,7 @@ class MilvusManager:
             dimension (int): Vector dimension for the collection
         """
         if self.client.has_collection(collection_name=collection_name):
-            logger.warning(f"Collection {collection_name} already exists, dropping it")
+            logger.warning("Collection %s already exists, dropping it", collection_name)
             self.client.drop_collection(collection_name=collection_name)
 
         self.client.create_collection(

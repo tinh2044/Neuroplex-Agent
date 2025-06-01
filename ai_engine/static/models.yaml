@@ -54,10 +54,6 @@ EMBED_MODEL_INFO:
     name: embedding-2
     dimension: 1024
 
-  zhipu/zhipu-embedding-3:
-    name: embedding-3
-    dimension: 2048
-
   ollama/nomic-embed-text:
     name: nomic-embed-text
     dimension: 768

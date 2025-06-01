@@ -1,7 +1,12 @@
+"""
+This file is responsible for handling the knowledge base related requests.
+It includes endpoints for creating, deleting, querying, and uploading databases, documents, and files.
+"""
 import os
 import shutil
 import json
 import time
+import random
 import traceback
 from ai_engine.utils import logger, hashstr
 from ai_engine.configs.agent import AgentConfig
@@ -69,7 +74,7 @@ class KnowledgeBase:
                 else:
                     logger.warning("Migration failed or not needed")
             except Exception as e:
-                logger.error(f"Migration error: {e}")
+                logger.error("Migration error: %s", e)
 
     def _initialize(self):
         """
@@ -142,7 +147,7 @@ class KnowledgeBase:
                 milvus_info = self.milvus_manager.get_collection_info(db["db_id"])
                 db_copy["metadata"] = milvus_info
             except Exception as e:
-                logger.warning(f"Failed to get Milvus info for {db['name']}: {e}")
+                logger.warning("Failed to get Milvus info for %s: %s", db['name'], e)
                 db_copy.update({
                     "row_count": 0,
                     "status": "Disconnected",
@@ -152,6 +157,35 @@ class KnowledgeBase:
             databases_with_milvus.append(db_copy)
 
         return {"databases": databases_with_milvus}
+    
+    def get_file_info(self, db_id, file_id):
+        """
+        Get file information including nodes.
+        
+        Args:
+            db_id (str): Database ID
+            file_id (str): File ID
+
+        Returns:
+            dict: File information with nodes
+        """
+        file_record = self.db_manager.get_file_by_id(file_id)
+        if not file_record:
+            raise Exception(f"File not found: {file_id}")
+
+        nodes = file_record.get("nodes", [])
+
+        if len(nodes) == 0:
+            nodes = self.milvus_manager.query_vectors(
+                collection_name=db_id,
+                filter_expr=f"file_id == '{file_id}'",
+                output_fields=None
+            )
+            for node in nodes:
+                node.pop("vector")
+
+        nodes.sort(key=lambda x: x.get("start_char_idx") or x.get("metadata", {}).get("chunk_idx", 0))
+        return {"lines": nodes}
 
     def delete_database(self, db_id):
         """
@@ -227,7 +261,7 @@ class KnowledgeBase:
                 self.db_manager.update_file_status(file_id, "done")
 
             except Exception as e:
-                logger.error(f"Failed to add file {file_id}: {e}\n{traceback.format_exc()}")
+                logger.error("Failed to add file %s: %s\n%s", file_id, e, traceback.format_exc())
                 self.db_manager.update_file_status(file_id, "failed")
 
     def _add_documents_to_milvus(self, file_id, collection_name, docs, chunk_infos):
@@ -243,7 +277,6 @@ class KnowledgeBase:
         Returns:
             dict: Milvus insertion result
         """
-        import random
         
         vectors = self.embedding_manager.encode_texts(docs)
         
@@ -372,7 +405,7 @@ class KnowledgeBase:
             milvus_info = self.milvus_manager.get_collection_info(db_id)
             db_copy.update(milvus_info)
         except Exception as e:
-            logger.warning(f"Failed to get Milvus info for {db_id}: {e}")
+            logger.warning("Failed to get Milvus info for %s: %s", db_id, e)
             db_copy.update({
                 "row_count": 0,
                 "status": "Disconnected",
@@ -386,7 +419,7 @@ class KnowledgeBase:
         json_path = os.path.join(self.agent_config.workspace, "data", "database.json")
 
         if not os.path.exists(json_path):
-            logger.info(f"Original JSON file not found: {json_path}, no need to migrate")
+            logger.info("Original JSON file not found: %s, no need to migrate", json_path)
             return False
 
         try:
@@ -399,7 +432,7 @@ class KnowledgeBase:
                 return False
 
             # Start migration
-            logger.info(f"Start migrating knowledge base data, total {len(data['databases'])} databases")
+            logger.info("Start migrating knowledge base data, total %s databases", len(data['databases']))
 
             # Iterate over all databases
             for db_info in data["databases"]:
@@ -410,12 +443,12 @@ class KnowledgeBase:
                 dimension = db_info.get("dimension")
                 metadata = db_info.get("metadata", {})
 
-                logger.info(f"Processing database: {name} (ID: {db_id}), metadata type: {type(metadata)}")
+                logger.info("Processing database: %s (ID: %s), metadata type: %s", name, db_id, type(metadata))
 
                 # Check if database already exists
                 existing_db = self.db_manager.get_database_by_id(db_id)
                 if existing_db:
-                    logger.info(f"Database {name} (ID: {db_id}) already exists, skipping creation")
+                    logger.info("Database %s (ID: %s) already exists, skipping creation", name, db_id)
                     continue
 
                 # Create database
@@ -450,7 +483,7 @@ class KnowledgeBase:
                         node_metadata = node.get("metadata", {})
                         if node_metadata is None:
                             node_metadata = {}
-                        logger.debug(f"Node metadata type: {type(node_metadata)}")
+                        logger.debug("Node metadata type: %s", type(node_metadata))
 
                         self.db_manager.add_node(
                             file_id=file_id,
@@ -461,16 +494,16 @@ class KnowledgeBase:
                             metadata=node_metadata  # This will be stored as meta_info in kb_db_manager
                         )
 
-                logger.info(f"Database {name} (ID: {db_id}) migration completed, total {len(files)} files")
+                logger.info("Database %s (ID: %s) migration completed, total %s files", name, db_id, len(files))
 
             # Backup original JSON file
             backup_path = json_path + f".bak.{int(time.time())}"
             os.rename(json_path, backup_path)
-            logger.info(f"Migration completed, original JSON file backed up to: {backup_path}")
+            logger.info("Migration completed, original JSON file backed up to: %s", backup_path)
 
             return True
 
         except Exception as e:
-            logger.error(f"Migration failed: {e}")
+            logger.error("Migration failed: %s", e)
             logger.error(traceback.format_exc())
             return False

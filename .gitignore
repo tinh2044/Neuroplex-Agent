@@ -43,3 +43,6 @@ docker/volumes
 
 /models
 .history/
+workspace/
+index.html
+docker/docker-compose.dev.yml
