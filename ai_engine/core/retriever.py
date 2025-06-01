@@ -11,10 +11,10 @@ from ai_engine.utils.prompts import KEYWORD_EXTRACTION_PROMPT, NER_PROMPT_TEMPLA
 class Retriever:
     """Retriever class for handling data retrieval operations."""
     
-    def __init__(self, agent_config, graph_database, knowledge_base):
+    def __init__(self, agent_config, graph_db, knowledge_base):
         """Initialize the retriever."""
         self._agent_config = agent_config
-        self._graph_database = graph_database
+        self._graph_database = graph_db
         self._knowledge_base = knowledge_base
         self._load_models()
 
@@ -24,8 +24,8 @@ class Retriever:
         return self._agent_config
 
     @property
-    def graph_database(self):
-        """Lazy load graph_database."""
+    def graph_db(self):
+        """Lazy load graph_db."""
         return self._graph_database
 
     @property

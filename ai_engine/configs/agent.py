@@ -193,7 +193,7 @@ class AgentConfig(BaseConfig):
         self.embed_model = {**_models["EMBED_MODEL_INFO"], **_models_private.get("EMBED_MODEL_INFO", {})}
         self.reranker = {**_models["RERANKER_LIST"], **_models_private.get("RERANKER_LIST", {})}
 
-    def _save_models_to_file(self):
+    def save_models_to_file(self):
         _models = {
             "MODEL_NAMES": self.models,
             "EMBED_MODEL_INFO": self.embed_model,
@@ -245,3 +245,20 @@ class AgentConfig(BaseConfig):
 
         self.valuable_model_provider = [k for k, v in self.model_provider_status.items() if v]
         assert len(self.valuable_model_provider) > 0, f"No model provider available, please check your `.env` file. API_KEY_LIST: {conds}"
+    
+    def get_safe_config(self):
+        """
+        Return a safe configuration dictionary without sensitive information.
+        
+        Returns:
+            dict: A dictionary of configuration items safe to expose
+        """
+        safe_config = {}
+        for key, config_item in self._config_items.items():
+            safe_config[key] = {
+                "value": self.get(key),
+                "description": config_item.get("des", ""),
+                "choices": config_item.get("choices", None)
+            }
+        return safe_config
+        

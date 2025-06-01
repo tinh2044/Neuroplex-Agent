@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from langchain_core.tools import tool, BaseTool, StructuredTool
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-from ai_engine import graph_database, knowledge_base, agent_config
+from ai_engine import graph_db, knowledge_base, agent_config
 
 # refs https://github.com/chatchat-space/LangGraph-Chatchat chatchat-server/chatchat/server/agent/tools_factory/tools_registry.py
 def regist_tool(
@@ -135,7 +135,7 @@ def calculator(a: float, b: float, operation: str) -> float:
 @tool
 def get_knowledge_graph(query: Annotated[str, "The query to get knowledge graph."]):
     """Use this to get knowledge graph."""
-    return graph_database.query_specific_entity(query, hops=2)
+    return graph_db.query_specific_entity(query, hops=2)
 
 
 

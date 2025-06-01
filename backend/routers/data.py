@@ -9,7 +9,7 @@ from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Query
 
 from ai_engine.utils import logger, hashstr
-from ai_engine import executor, retriever, agent_config, knowledge_base, graph_database
+from ai_engine import executor, retriever, agent_config, knowledge_base, graph_db
 
 data = APIRouter(prefix="/data")
 
@@ -138,7 +138,7 @@ async def upload_file(
 @data.get("/graph")
 async def get_graph_info():
     """Get graph info"""
-    graph_info = graph_database.metadata_manager.load_graph_info()
+    graph_info = graph_db.metadata_manager.load_graph_info()
     if graph_info is None:
         raise HTTPException(status_code=400, detail="Error in retrieving graph database")
     return graph_info
@@ -146,19 +146,19 @@ async def get_graph_info():
 @data.post("/graph/index-nodes")
 async def index_nodes(data: dict = Body(default={})):
     """Index nodes"""
-    if not graph_database.is_connected():
+    if not graph_db.is_connected():
         raise HTTPException(status_code=400, detail="Graph database not started")
 
     kgdb_name = data.get('kgdb_name', 'neo4j')
-    count = graph_database.add_embeddings_to_entities([], kgdb_name) if graph_database.is_connected() else 0
+    count = graph_db.add_embeddings_to_entities([], kgdb_name) if graph_db.is_connected() else 0
 
     return {"status": "success", "message": f"Successfully indexed {count} nodes", "indexed_count": count}
 
 @data.get("/graph/node")
 async def get_graph_node(entity_name: str):
     """Get graph node"""
-    result = graph_database.query_specific_entity(entity_name)
-    return {"result": graph_database.data_transformer.format_query_results(result), "message": "success"}
+    result = graph_db.query_specific_entity(entity_name)
+    return {"result": graph_db.data_transformer.format_query_results(result), "message": "success"}
 
 @data.get("/graph/nodes")
 async def get_graph_nodes(kgdb_name: str, num: int):
@@ -167,8 +167,8 @@ async def get_graph_nodes(kgdb_name: str, num: int):
         raise HTTPException(status_code=400, detail="Knowledge graph is not enabled")
 
     logger.debug("Get graph nodes in %s with %s nodes", kgdb_name, num)
-    result = graph_database.get_sample_nodes(num, kgdb_name)
-    return {"result": graph_database.data_transformer.format_query_results(result), "message": "success"}
+    result = graph_db.get_sample_nodes(num, kgdb_name)
+    return {"result": graph_db.data_transformer.format_query_results(result), "message": "success"}
 
 @data.post("/graph/add-by-jsonl")
 async def add_graph_entity(file_path: str = Body(...), kgdb_name: Optional[str] = Body(None)):
@@ -183,7 +183,7 @@ async def add_graph_entity(file_path: str = Body(...), kgdb_name: Optional[str] 
         import json
         with open(file_path, 'r') as f:
             triples = [json.loads(line) for line in f]
-        graph_database.add_entities(triples, kgdb_name)
+        graph_db.add_entities(triples, kgdb_name)
         return {"message": "Entities added successfully", "status": "success"}
     except Exception as e:
         logger.error("Failed to add entities %s, %s, %s", file_path, e, traceback.format_exc())

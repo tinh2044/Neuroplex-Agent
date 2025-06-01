@@ -7,8 +7,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessageChunk
 
-from ai_engine import executor, config, retriever
-from ai_engine.core import HistoryManager
+from ai_engine import executor, agent_config, retriever
+from ai_engine.core.history import HistoryManager
 from ai_engine.agents import agent_manager
 from ai_engine.models import select_model
 from ai_engine.utils.logging import logger
@@ -87,7 +87,7 @@ async def chat_post(
         content = ""
         reasoning_content = ""
         try:
-            for delta in model.predict(messages, stream=True):
+            for delta in model.generate_response(messages, stream=True):
                 if not delta.content and hasattr(delta, 'reasoning_content'):
                     reasoning_content += delta.reasoning_content or ""
                     chunk = make_chunk(reasoning_content=reasoning_content, status="reasoning")
@@ -121,7 +121,7 @@ async def call(query: str = Body(...), meta: dict = Body(None)):
     model = select_model(model_provider=meta.get("model_provider"), model_name=meta.get("model_name"))
     async def predict_async(query):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(executor, model.predict, query)
+        return await loop.run_in_executor(executor, model.generate_response, query)
 
     response = await predict_async(query)
     logger.debug({"query": query, "response": response.content})
@@ -209,14 +209,14 @@ def chat_agent(agent_name: str,
 async def get_chat_models(model_provider: str):
     """Get the model list of the specified model provider"""
     model = select_model(model_provider=model_provider)
-    return {"models": model.get_models()}
+    return {"models": model.list_available_models()}
 
 @chat.post("/models/update")
 async def update_chat_models(model_provider: str, model_names: list[str]):
     """Update the model list of the specified model provider"""
-    config.model_names[model_provider]["models"] = model_names
-    config._save_models_to_file()
-    return {"models": config.model_names[model_provider]["models"]}
+    agent_config.model_names[model_provider]["models"] = model_names
+    agent_config.save_models_to_file()
+    return {"models": agent_config.model_names[model_provider]["models"]}
 
 @chat.get("/tools")
 async def get_tools():

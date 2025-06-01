@@ -43,26 +43,18 @@ class KnowledgeExtractorProcessor:
         
     def _initialize_model_components(self, model_repo):
         """Setup model, tokenizer and generation configuration"""
-        # Configure 4-bit quantization for memory efficiency
-        quantization_setup = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4"
-        )
-        
-        # Initialize model components
-        self.text_processor = AutoTokenizer.from_pretrained(
-            model_repo, 
-            use_fast=False, 
-            trust_remote_code=True
-        )
-        
+        # Loại bỏ quantization nếu gặp vấn đề
         self.neural_model = AutoModelForCausalLM.from_pretrained(
             model_repo,
             config=AutoConfig.from_pretrained(model_repo),
-            quantization_config=quantization_setup,
+            # Loại bỏ quantization_config
             device_map="auto",
+            trust_remote_code=True
+        )
+        
+        self.text_processor = AutoTokenizer.from_pretrained(
+            model_repo, 
+            use_fast=False, 
             trust_remote_code=True
         )
         

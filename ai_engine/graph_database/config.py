@@ -24,7 +24,7 @@ class GraphDatabaseConfig(BaseConfig):
         # Set derived configurations
         self.ENABLE_KNOWLEDGE_GRAPH = self.enable_graph
         self.ENABLE_KNOWLEDGE_BASE = self.enable_kb
-        self.SAVE_DIR = os.path.join(self.workspace, "graph_database")
+        self.SAVE_DIR = os.path.join(self.workspace, "graph_db")
         self.EMBED_MODEL = self.embed_model
         
         self.validate()

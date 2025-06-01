@@ -22,6 +22,6 @@ agent_config = AgentConfig()
 kb_db_manager = KBDBManager(agent_config)
 knowledge_base = KnowledgeBase(agent_config, kb_db_manager)
 
-graph_database = GraphDatabase(agent_config)
+graph_db = GraphDatabase(agent_config)
 
-retriever = Retriever(agent_config=agent_config, knowledge_base=knowledge_base, graph_database=graph_database)
+retriever = Retriever(agent_config=agent_config, knowledge_base=knowledge_base, graph_db=graph_db)
