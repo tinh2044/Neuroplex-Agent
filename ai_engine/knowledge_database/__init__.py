@@ -136,6 +136,7 @@ class KnowledgeBase:
         Raises:
             AssertionError: If knowledge base is not enabled
         """
+        print(self.agent_config.enable_kb)
         assert self.agent_config.enable_kb, "Knowledge base is not enabled"
 
         databases = self.db_manager.get_all_databases()

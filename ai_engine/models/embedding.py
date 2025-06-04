@@ -200,46 +200,178 @@ class LocalEmbeddingModel(FlagModel, BaseEmbeddingModel):
 
 class OllamaEmbedding(BaseEmbeddingModel):
     """Embedding model that interacts with an Ollama API."""
+    
     def __init__(self, config) -> None:
         """
         Initializes an embedding model that interacts with an Ollama API.
-
         Args:
             config: The application configuration object. It uses `config.embed_model`
                     to find the model details in `config.embed_model_names`.
+            logger: Logger instance for logging messages
         """
-        self.meta = config.embed_model_names[config.embed_model]
+        self.meta = config.embed_models[config.embed_model]
+        
+        logger.info(f"Initializing Ollama embedding with config: {self.meta}")
+        
         self.model = self.meta["name"]
         self.url = self.meta.get("url", "http://localhost:11434/api/embed")
         self.url = get_docker_safe_url(self.url)
         self.dimension = self.meta.get("dimension", None)
         self.embed_model_fullname = config.embed_model
-
-    def run_inference(self, input_data: list[str] | str):
+        
+        # Base URL for other Ollama API endpoints
+        self.base_url = self.url.replace("/api/embed", "")
+        
+        # Check if model exists, if not, try to pull it
+        self._ensure_model_available()
+    
+    def _check_model_exists(self) -> bool:
+        """
+        Check if the model exists in Ollama.
+        Returns:
+            bool: True if model exists, False otherwise
+        """
+        try:
+            list_url = f"{self.base_url}/api/tags"
+            response = requests.get(list_url, timeout=10)
+            
+            if response.status_code == 200:
+                models_data = response.json()
+                existing_models = [model['name'] for model in models_data.get('models', [])]
+                return self.model in existing_models
+            else:
+                logger.warning(f"Failed to check existing models: {response.status_code}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error checking if model exists: {e}")
+            return False
+    
+    def _pull_model(self) -> bool:
+        """
+        Pull the model from Ollama registry.
+        Returns:
+            bool: True if pull successful, False otherwise
+        """
+        try:
+            logger.info(f"Model '{self.model}' not found. Attempting to pull from Ollama registry...")
+            logger.info("Note: You are using Ollama in Docker. This may take a while for the first download.")
+            
+            pull_url = f"{self.base_url}/api/pull"
+            payload = {"name": self.model}
+            
+            response = requests.post(pull_url, json=payload, timeout=300, stream=True)
+            
+            if response.status_code == 200:
+                logger.info("Pulling model... Please wait.")
+                
+                # Process streaming response
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            data = json.loads(line.decode('utf-8'))
+                            if 'status' in data:
+                                logger.info(f"Pull status: {data['status']}")
+                                
+                                # Check if pull is complete
+                                if data.get('status') == 'success' or 'successfully' in data.get('status', '').lower():
+                                    logger.info(f"Successfully pulled model '{self.model}'")
+                                    return True
+                        except json.JSONDecodeError:
+                            continue
+                
+                return True
+            else:
+                logger.error(f"Failed to pull model: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            logger.error("Timeout while pulling model. The model might be large. Please try again or pull manually.")
+            return False
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error pulling model: {e}")
+            return False
+    
+    def _ensure_model_available(self):
+        """
+        Ensure the model is available, pull if necessary.
+        """
+        if not self._check_model_exists():
+            logger.warning(f"Model '{self.model}' not found in Ollama")
+            
+            if not self._pull_model():
+                error_msg = (
+                    f"Failed to pull model '{self.model}'. "
+                    f"Please manually pull the model using: docker exec ollama ollama pull {self.model}"
+                )
+                raise RuntimeError(error_msg)
+        else:
+            logger.info(f"Model '{self.model}' is available in Ollama")
+    
+    def run_inference(self, input_data):
         """
         Generates embeddings using the Ollama API.
-
         Args:
-            input_data (list[str] | str): The text or list of texts to embed.
-
+            input_data (Union[List[str], str]): The text or list of texts to embed.
         Returns:
-            list: A list of embeddings from the Ollama API.
-
+            List[List[float]]: A list of embeddings from the Ollama API.
         Raises:
-            AssertionError: If the API response does not contain 'embeddings'.
+            RuntimeError: If the API response indicates an error or missing model.
         """
         if isinstance(input_data, str):
             input_data = [input_data]
-
+        
         payload = {
             "model": self.model,
             "input": input_data,
         }
-        resp = requests.post(self.url, json=payload, timeout=10)
-        output = json.loads(resp.text)
-        assert output.get("embeddings"), f"Ollama embedding failed: {output}"
-        return output["embeddings"]
-
+        
+        try:
+            logger.debug(f"Sending embedding request for {len(input_data)} texts")
+            
+            resp = requests.post(self.url, json=payload, timeout=30)
+            
+            if resp.status_code != 200:
+                error_msg = f"Ollama API returned HTTP {resp.status_code}: {resp.text}"
+                raise RuntimeError(error_msg)
+            
+            output = resp.json()
+            
+            # Check for errors in response
+            if 'error' in output:
+                error_msg = f"Ollama embedding failed: {output['error']}"
+                
+                # Special handling for model not found error
+                if 'not found' in output['error'].lower():
+                    logger.warning("Model not found error occurred. Attempting to pull model...")
+                    
+                    if self._pull_model():
+                        # Retry the inference after pulling
+                        logger.info("Retrying embedding after model pull...")
+                        return self.run_inference(input_data)
+                    else:
+                        error_msg += f"\nPlease manually pull the model using: docker exec ollama ollama pull {self.model}"
+                
+                raise RuntimeError(error_msg)
+            
+            # Check if embeddings are present
+            if not output.get("embeddings"):
+                error_msg = f"No embeddings returned from Ollama API. Response: {output}"
+                raise RuntimeError(error_msg)
+            
+            logger.debug(f"Successfully generated {len(output['embeddings'])} embeddings")
+            
+            return output["embeddings"]
+            
+        except requests.exceptions.Timeout:
+            error_msg = "Timeout waiting for Ollama embedding response"
+            raise RuntimeError(error_msg)
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error while calling Ollama API: {e}"
+            raise RuntimeError(error_msg)
+        except json.JSONDecodeError as e:
+            error_msg = f"Invalid JSON response from Ollama API: {e}"
+            raise RuntimeError(error_msg)
 
 class OtherEmbedding(BaseEmbeddingModel):
     """Embedding model that interacts with a generic API."""
@@ -320,7 +452,7 @@ def initialize_embedding(config):
         return None
     embed_model = str(config.embed_model)
     provider, _ = embed_model.split('/', 1)
-    assert embed_model in config.embed_model, f"Unsupported model: {embed_model}"
+    assert embed_model in config.embed_models, f"Unsupported model: {embed_model}"
 
     logger.debug("Initializing embedding model `%s`...", embed_model)
 

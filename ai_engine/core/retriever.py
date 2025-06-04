@@ -101,10 +101,10 @@ class Retriever:
             for entity in refs["entities"]:
                 if entity == "":
                     continue
-                result = self.graph_database.get_sample_nodes(entity)
+                result = self._graph_database.get_sample_nodes(entity)
                 if result != []:
                     results.extend(result)
-        return {"results": self.graph_database.format_query_results(results)}
+        return {"results": self._graph_database.format_query_results(results)}
 
     def query_knowledgebase(self, query, history, refs):
         """Query knowledge base"""

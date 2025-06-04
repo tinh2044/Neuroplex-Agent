@@ -17,7 +17,7 @@ class KnowledgeDatabase(Base):
     embedding = Column(String, nullable=True)
     dimension = Column(Integer, nullable=True)
     metadata_extra = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=func.now)
+    created_at = Column(DateTime, default=func.now())
 
     related_files = relationship("KnowledgeFile", back_populates="database", cascade="all, delete-orphan")
 
@@ -48,7 +48,7 @@ class KnowledgeFile(Base):
     path = Column(String, nullable=False)
     kind = Column(String, nullable=False)
     state = Column(String, nullable=False)
-    created_at = Column(DateTime, default=func.now)
+    created_at = Column(DateTime, default=func.now())
 
     database = relationship("KnowledgeDatabase", back_populates="related_files")
     content_blocks = relationship("KnowledgeNode", back_populates="file", cascade="all, delete-orphan")

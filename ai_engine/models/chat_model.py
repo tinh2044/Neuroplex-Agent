@@ -158,6 +158,120 @@ class CustomModel(OpenAIBase):
         super().__init__(api_key=api_key, base_url=base_url, model_name=model_name)
 
 
+class OllamaModel(OpenAIBase):
+    """Chat model specifically for Ollama local models."""
+    def __init__(self, model_name=None, list_models=[]):
+        """
+        Initializes the OllamaModel.
+
+        Args:
+            model_name (str, optional): The name of the Ollama model to use.
+                                      Defaults to "llama2" if not specified.
+            host (str, optional): The host where Ollama is running. Defaults to "localhost".
+            port (int, optional): The port where Ollama is running. Defaults to 11434.
+        """
+        self.list_models = list_models
+        model_name = model_name or "llama2"
+        
+        # Ollama doesn't require API key, but OpenAI client needs one
+        api_key = "ollama"
+        
+        # Construct Ollama API base URL with OpenAI-compatible endpoint
+        base_url = os.getenv("OLLAMA_API_URL")
+        print(base_url)
+        
+        # Make base_url docker-safe
+        base_url = get_docker_safe_url(base_url)
+        
+        logger.info("> Ollama model loaded: %s, endpoint: %s", model_name, base_url)
+        
+        super().__init__(api_key=api_key, base_url=base_url, model_name=model_name)
+    
+    def check_ollama_connection(self):
+        """
+        Checks if Ollama server is running and accessible.
+
+        Returns:
+            bool: True if Ollama is accessible, False otherwise.
+        """
+        try:
+            # Remove /v1 from base_url for health check
+            health_url = self.base_url.replace("/v1", "")
+            response = requests.get(f"{health_url}/api/tags", timeout=5)
+            return response.status_code == 200
+        except Exception as err:
+            logger.warning("Ollama connection check failed: %s", err)
+            return False
+    
+    def pull_model(self, model_name=None):
+        """
+        Pulls/downloads a model to Ollama.
+
+        Args:
+            model_name (str, optional): The name of the model to pull. 
+                                      Uses instance model_name if not specified.
+
+        Returns:
+            bool: True if model was pulled successfully, False otherwise.
+        """
+        target_model = model_name or self.model_name
+        
+        try:
+            # Remove /v1 from base_url for pull API
+            pull_url = self.base_url.replace("/v1", "/api/pull")
+            
+            payload = {"name": target_model}
+            response = requests.post(pull_url, json=payload, timeout=300)
+            
+            if response.status_code == 200:
+                logger.info("Model %s pulled successfully", target_model)
+                return True
+            else:
+                logger.error("Failed to pull model %s: %s", target_model, response.text)
+                return False
+                
+        except Exception as err:
+            logger.error("Error pulling model %s: %s", target_model, err)
+            return False
+    
+    def list_local_models(self):
+        """
+        Lists locally available Ollama models.
+
+        Returns:
+            list: A list of locally available models, or an empty list if an error occurs.
+        """
+        return self.list_models
+    
+    def delete_model(self, model_name):
+        """
+        Deletes a local Ollama model.
+
+        Args:
+            model_name (str): The name of the model to delete.
+
+        Returns:
+            bool: True if model was deleted successfully, False otherwise.
+        """
+        try:
+            # Remove /v1 from base_url for delete API
+            delete_url = self.base_url.replace("/v1", "/api/delete")
+            
+            payload = {"name": model_name}
+            response = requests.delete(delete_url, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                logger.info("Model %s deleted successfully", model_name)
+                return True
+            else:
+                logger.error("Failed to delete model %s: %s", model_name, response.text)
+                return False
+                
+        except Exception as err:
+            logger.error("Error deleting model %s: %s", model_name, err)
+            return False
+
+
 class GeneralResponse:
     """A simple wrapper for holding response content."""
     def __init__(self, content):

@@ -22,14 +22,14 @@ class ChatbotConfiguration(Configuration):
     )
 
     model: str = field(
-        default="zhipu/glm-4-plus",
+        default="ollama/llama3.1:8b",
         metadata={
             "name": "Agent model",
             "configurable": True,
             "options": [
-                "zhipu/glm-4-plus",
-                "siliconflow/Qwen/QwQ-32B",
-                "siliconflow/deepseek-ai/DeepSeek-V3",
+                "ollama/llama3.1:8b",
+                "ollama/llama3.1:13b",
+                "ollama/llama3.1:70b",
             ],
             "description": "The driving model of the agent"
         },

@@ -73,7 +73,7 @@ class EmbeddingManager:
         """
         if not self.embed_model:
             raise ValueError("Embedding model not initialized")
-        return self.embed_model.batch_encode(texts)
+        return self.embed_model.batch_vectorize(texts)
     
     def encode_single_text(self, text):
         """

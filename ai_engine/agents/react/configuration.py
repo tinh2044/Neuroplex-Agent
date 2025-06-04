@@ -27,7 +27,7 @@ class ReActConfiguration(Configuration):
     )
 
     model: str = field(
-        default="zhipu/glm-4-plus",
+        default="ollama/llama3.1:8b",
         metadata={
             "description": "The name of the language model to use for the agent's main interactions. "
             "Should be in the form: provider/model-name."

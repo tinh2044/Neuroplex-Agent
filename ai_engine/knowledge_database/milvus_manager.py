@@ -32,7 +32,7 @@ class MilvusManager:
         or configuration defaults.
         """
         self.client = None
-        self.uri = os.getenv('MILVUS_URI', agent_config.get('milvus_uri', "http://milvus:19530"))
+        self.uri = os.getenv('MILVUS_URI', agent_config.get('milvus_uri', "http://localhost:19530/"))
         
     def connect(self) -> bool:
         """
@@ -49,7 +49,7 @@ class MilvusManager:
             logger.info("Successfully connected to Milvus at %s", self.uri)
             return True
         except MilvusException as e:
-            logger.error(f"Failed to connect to Milvus: {e}")
+            logger.error("Failed to connect to Milvus with uri: %s, %s", self.uri, e)
             return False
     
     def create_collection(self, collection_name, dimension):

@@ -66,9 +66,8 @@ class Configuration(dict):
 
 
 class BaseAgent():
-
     """
-    Define a basic Agent for various graph to inherit
+        Define a basic Agent for various graph to inherit
     """
 
     name: str = "base_agent"

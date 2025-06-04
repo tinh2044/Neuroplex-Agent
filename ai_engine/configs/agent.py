@@ -69,30 +69,33 @@ class AgentConfig(BaseConfig):
         super().__setattr__('_config_items', {})
         
         self.workspace = "saves"
-        self.config_path = str(Path(config_path)) if config_path else None
-        self.model_path = str(Path(model_path)) if model_path else None
-        self.private_path = str(Path(private_path)) if private_path else None
+        self.config_path = str(Path(config_path)) if config_path else "ai_engine/static/config.json"
+        self.model_path = str(Path(model_path)) if model_path else "ai_engine/static/models.yaml"
+        self.private_path = str(Path(private_path)) if private_path else "ai_engine/static/models.private.yml"
         self.models = {}
-        self.embed_model = {}
+        self.embed_models = {}
         self.rankers = {}
         
         # Initialize critical attributes first
-        self.provider = "siliconflow"
-        self.model = "Qwen/Qwen2.5-7B-Instruct"
+        self.provider = "ollama"
+        self.model = "llama3.1:8b"
         
         # Then add all configuration items
         self.add_item("workspace", "workspace", des="Agent workspace directory")
         self.add_item("enable_rerank", False, des="Whether to use embed reranker")
-        self.add_item("enable_kb", False, des="Whether to use knowledge base")
+        self.add_item("enable_kb", True, des="Whether to use knowledge base")
         self.add_item("enable_graph", True, des="Whether to use graph")
-        self.add_item("enable_websearch", False, des="Whether to use web search")
-        self.add_item("provider", "siliconflow", choices=["siliconflow", "openai", "anthropic", "google", "huggingface"])
-        self.add_item("model", "Qwen/Qwen2.5-7B-Instruct", des="Model name")
+        self.add_item("enable_websearch", True, des="Whether to use web search")
+        self.add_item("provider", "ollama", choices=["ollama", "openai", "anthropic", "google", "huggingface", "deepseek", "qwen"])
+        self.add_item("model", "llama3.1:8b", des="Model name")
         self.add_item("embed_model", "ollama/bge-m3", des="Embedding model")
-        self.add_item("ranker", "huggingface/bge-reranker-v2-m3", des="Ranking model")
+        self.add_item("ranker", "ollama/bge-reranker-v2-m3", des="Ranking model")
         self.add_item("local_paths", {}, des="Local model paths")
         self.add_item("query_mode", "off", des="Query enhancement mode", choices=["off", "on", "hyde"])
-        self.add_item("device", "cuda", des="Compute device", choices=["cpu", "cuda"])
+        self.add_item("device", "cpu", des="Compute device", choices=["cpu", "cuda"])
+        
+        self.load()
+        self._update_models_from_file()
 
     def add_item(self, key, default, des=None, choices=None):
         """Add a configuration item."""
@@ -179,41 +182,43 @@ class AgentConfig(BaseConfig):
         
         """
 
-        with open(Path("src/static/models.yaml"), encoding='utf-8') as f:
+        with open(Path(self.model_path), encoding='utf-8') as f:
             _models = yaml.safe_load(f)
 
         try:
-            with open(Path("src/static/models.private.yml"), encoding='utf-8') as f:
+            with open(Path(self.private_path), encoding='utf-8') as f:
                 _models_private = yaml.safe_load(f)
         except FileNotFoundError:
             _models_private = {}
 
 
         self.models = {**_models["MODEL_NAMES"], **_models_private.get("MODEL_NAMES", {})}
-        self.embed_model = {**_models["EMBED_MODEL_INFO"], **_models_private.get("EMBED_MODEL_INFO", {})}
+        self.embed_models = {**_models["EMBED_MODEL_INFO"], **_models_private.get("EMBED_MODEL_INFO", {})}
         self.reranker = {**_models["RERANKER_LIST"], **_models_private.get("RERANKER_LIST", {})}
 
     def save_models_to_file(self):
         _models = {
             "MODEL_NAMES": self.models,
-            "EMBED_MODEL_INFO": self.embed_model,
+            "EMBED_MODEL_INFO": self.embed_models,
             "RERANKER_LIST": self.reranker,
         }
-        with open(Path("src/static/models.private.yml"), 'w', encoding='utf-8') as f:
+       
+        with open(Path(self.model_path), 'w', encoding='utf-8') as f:
             yaml.dump(_models, f, indent=2, allow_unicode=True)
 
     def handle_self(self):
         """
+        Handle the self configuration.
         """
         provider_info = self.models.get(self.provider, {})
         self.model_dir = os.environ.get("MODEL_DIR", "")
 
         if self.model_dir:
             if os.path.exists(self.model_dir):
-                logger.debug(f"MODEL_DIR （{self.model_dir}） folder below: {os.listdir(self.model_dir)}")
+                logger.debug("MODEL_DIR （%s） folder below: %s", self.model_dir, os.listdir(self.model_dir))
             else:
-                logger.warning(f"Remind: MODEL_DIR （{self.model_dir}） not found, if not configured, please ignore, if configured, please check if it is configured correctly;"
-                               "for example, the mapping in the docker-compose file")
+                logger.warning("Remind: MODEL_DIR （%s） not found, if not configured, please ignore, if configured, please check if it is configured correctly;"
+                               "for example, the mapping in the docker-compose file", self.model_dir)
         
         if self.provider != "custom":
             if self.model not in provider_info["models"]:
@@ -255,10 +260,6 @@ class AgentConfig(BaseConfig):
         """
         safe_config = {}
         for key, config_item in self._config_items.items():
-            safe_config[key] = {
-                "value": self.get(key),
-                "description": config_item.get("des", ""),
-                "choices": config_item.get("choices", None)
-            }
+            safe_config[key] = self.get(key)
         return safe_config
         

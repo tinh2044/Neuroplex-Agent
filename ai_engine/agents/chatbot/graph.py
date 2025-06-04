@@ -1,3 +1,6 @@
+"""
+    Graph for the chatbot agent.
+"""
 import uuid
 from typing import Any
 
@@ -14,9 +17,19 @@ from ai_engine.agents.chatbot.configuration import ChatbotConfiguration
 from ai_engine.agents.tools_factory import get_all_tools
 
 class ChatbotAgent(BaseAgent):
+    """
+        Chatbot agent.
+    """
     name = "chatbot"
     description = "Basic chatbot that can answer questions. By default, it doesn't use any tools, but needed tools can be enabled in the configuration."
-    requirements = ["TAVILY_API_KEY", "ZHIPUAI_API_KEY"]
+    requirements = ["TAVILY_API_KEY", 
+                    "OPENAI_API_KEY",
+                    "ANTHROPIC_API_KEY",
+                    "GOOGLE_API_KEY",
+                    "HUGGINGFACE_API_KEY",
+                    "DEEPSEEK_API_KEY",
+                    "QWEN_API_KEY",
+                    ]
     config_schema = ChatbotConfiguration
 
     def __init__(self, **kwargs):
@@ -35,7 +48,7 @@ class ChatbotAgent(BaseAgent):
         else:
             # Use tools specified in the configuration
             tool_names = [tool for tool in platform_tools.keys() if tool in tools]
-            logger.info(f"Using tools: {tool_names}")
+            logger.info("Using tools: %s", tool_names)
             return [platform_tools[tool] for tool in tool_names]
 
     def llm_call(self, state: State, config: RunnableConfig = None) -> dict[str, Any]:
@@ -46,7 +59,7 @@ class ChatbotAgent(BaseAgent):
         system_prompt = f"{conf.system_prompt} Now is {get_cur_time_with_utc()}"
         model = load_chat_model(conf.model)
         model_with_tools = model.bind_tools(self._get_tools(conf.tools))
-        logger.info(f"llm_call with config: {conf}, {conf.model}")
+        logger.info("llm_call with config: %s, %s", conf, conf.model)
 
         res = model_with_tools.invoke(
             [{"role": "system", "content": system_prompt}, *state["messages"]]

@@ -1,10 +1,13 @@
+"""
+Utility functions for agents
+"""
 from datetime import datetime, timezone
 
-from ai_engine.models import select_model
-from ai_engine.agents.registry import BaseAgent
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessageChunk, ToolMessage
+from ai_engine.models import select_model
+from ai_engine.agents.registry import BaseAgent
 
 
 

@@ -1,0 +1,14 @@
+{
+    "workspace": "saves",
+    "enable_rerank": false,
+    "enable_kb": true,
+    "enable_graph": true,
+    "enable_websearch": true,
+    "provider": "ollama",
+    "model": "gemma3:1b",
+    "embed_model": "ollama/bge-m3",
+    "ranker": "ollama/bge-reranker-v2-m3",
+    "local_paths": {},
+    "query_mode": "off",
+    "device": "cpu"
+}

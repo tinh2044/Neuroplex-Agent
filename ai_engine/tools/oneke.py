@@ -43,11 +43,9 @@ class KnowledgeExtractorProcessor:
         
     def _initialize_model_components(self, model_repo):
         """Setup model, tokenizer and generation configuration"""
-        # Loại bỏ quantization nếu gặp vấn đề
         self.neural_model = AutoModelForCausalLM.from_pretrained(
             model_repo,
             config=AutoConfig.from_pretrained(model_repo),
-            # Loại bỏ quantization_config
             device_map="auto",
             trust_remote_code=True
         )
