@@ -26,6 +26,9 @@ class Tool(BaseModel):
 
 @tool.get("/", response_model=List[Tool])
 async def route_index():
+    """
+    Route for the tool list
+    """
     tools = [
         Tool(
             name="text-chunking",
@@ -65,6 +68,9 @@ async def route_index():
 
 @tool.post("/text-chunking")
 async def text_chunking(text: str = Body(...), params: Dict[str, Any] = Body(...)):
+    """
+    Chunk text for better understanding. Can input text or upload file.
+    """
     nodes = chunk(text, params=params)
     return {"nodes": [node.to_dict() for node in nodes]}
 

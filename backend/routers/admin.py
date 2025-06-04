@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.db_manager import DBManager
 from backend.models.token_model import AgentToken
 
-admin = APIRouter(prefix="/admin", tags=["admin"])
+admin = APIRouter(prefix="/admin")
 
 db_manager = DBManager()
 def get_db():

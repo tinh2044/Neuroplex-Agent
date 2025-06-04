@@ -14,7 +14,7 @@ from ai_engine.models import select_model
 from ai_engine.utils.logging import logger
 from ai_engine.agents.tools_factory import get_all_tools
 
-chat = APIRouter(prefix="/chat")
+chat = APIRouter()
 
 @chat.get("/")
 async def chat_get():
@@ -24,8 +24,7 @@ async def chat_get():
 async def chat_post(
         query: str = Body(...),
         meta: dict = Body(None),
-        history: list[dict] | None = Body(None),
-        thread_id: str | None = Body(None)):
+        history: list[dict] | None = Body(None)):
     """The main endpoint for handling chat requests.
     Args:
         query: the user's input query text
@@ -51,7 +50,7 @@ async def chat_post(
     model = select_model()
     meta["server_model_name"] = model.model_name
     history_manager = HistoryManager(history, system_prompt=meta.get("system_prompt"))
-    logger.debug(f"Received query: {query} with meta: {meta}")
+    logger.debug("Received query: %s with meta: %s", query, meta)
 
     def make_chunk(content=None, **kwargs):
         return json.dumps({
@@ -75,7 +74,7 @@ async def chat_post(
             try:
                 modified_query, refs = retriever(modified_query, history_manager.messages, meta)
             except Exception as e:
-                logger.error(f"Retriever error: {e}, {traceback.format_exc()}")
+                logger.error("Retriever error: %s, %s", e, traceback.format_exc())
                 yield make_chunk(message=f"Retriever error: {e}", status="error")
                 return
 
@@ -103,13 +102,13 @@ async def chat_post(
                 chunk = make_chunk(content=delta.content, status="loading")
                 yield chunk
 
-            logger.debug(f"Final response: {content}")
-            logger.debug(f"Final reasoning response: {reasoning_content}")
+            logger.debug("Final response: %s", content)
+            logger.debug("Final reasoning response: %s", reasoning_content)
             yield make_chunk(status="finished",
                             history=history_manager.update_ai(content),
                             refs=refs)
         except Exception as e:
-            logger.error(f"Model error: {e}, {traceback.format_exc()}")
+            logger.error("Model error: %s, %s", e, traceback.format_exc())
             yield make_chunk(message=f"Model error: {e}", status="error")
             return
 
@@ -124,7 +123,7 @@ async def call(query: str = Body(...), meta: dict = Body(None)):
         return await loop.run_in_executor(executor, model.generate_response, query)
 
     response = await predict_async(query)
-    logger.debug({"query": query, "response": response.content})
+    logger.debug("query: %s, response: %s", query, response.content)
 
     return {"response": response.content}
 

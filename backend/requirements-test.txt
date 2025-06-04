@@ -1,0 +1,13 @@
+# Testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+httpx>=0.24.0
+fastapi[testing]>=0.100.0
+
+# For test coverage
+pytest-cov>=4.0.0
+
+# Additional testing utilities
+factory-boy>=3.2.0
+faker>=18.0.0 

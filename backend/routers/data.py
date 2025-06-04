@@ -11,7 +11,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Query
 from ai_engine.utils import logger, hashstr
 from ai_engine import executor, retriever, agent_config, knowledge_base, graph_db
 
-data = APIRouter(prefix="/data")
+data = APIRouter()
 
 
 @data.get("/")
@@ -20,7 +20,7 @@ async def get_databases():
     try:
         database = knowledge_base.get_databases()
     except Exception as e:
-        logger.error("Failed to get database list, %s, %s", e, traceback.format_exc())
+        logger.error("Failed to get database list : , %s, %s", e, traceback.format_exc())
         return {"message": f"Failed to get database list {e}", "databases": []}
     return database
 

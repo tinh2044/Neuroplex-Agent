@@ -9,8 +9,8 @@ from backend.routers.tool import tool
 from backend.routers.admin import admin
 
 router = APIRouter()
-router.include_router(base)
-router.include_router(chat)
-router.include_router(data)
-router.include_router(tool)
-router.include_router(admin)
+router.include_router(base, tags=["Base"])
+router.include_router(chat, prefix="/chat", tags=["Chat"])
+router.include_router(data, prefix="/data", tags=["Data"])
+router.include_router(tool, tags=["Tools"])
+router.include_router(admin, tags=["Admin"])
