@@ -61,7 +61,16 @@ The system consists of three main components:
 
 ## Quick Start
 
-### Environment Configuration
+### 1. Clone the Repository
+
+First, clone the Neuroplex project to your local machine:
+
+```bash
+git clone https://github.com/tinh2044/Neuroplex-Agent
+cd Neuroplex-Agent
+```
+
+### 2. Environment Configuration
 
 Before starting, you need to provide API keys from service providers and place them in the `ai_engine/.env` file (create based on [ai_engine/.env.example](ai_engine/.env.example)).
 
@@ -80,7 +89,7 @@ MODEL_DIR=/path/to/local/models       # Local model storage
 
 > **Tip**: You can start with free API keys from providers like DeepSeek or use local models with Ollama.
 
-### Starting the Service
+### 3. Starting the Service
 
 > Make sure you have installed [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
