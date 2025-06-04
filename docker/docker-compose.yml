@@ -1,4 +1,17 @@
 services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - app-network
+
   graph:
     image: neo4j:latest
     container_name: graph-dev
@@ -31,28 +44,18 @@ services:
       - app-network
 
   etcd:
-    container_name: milvus-etcd-dev
-    image: quay.io/coreos/etcd:v3.5.5
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.18
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
       - ETCD_QUOTA_BACKEND_BYTES=4294967296
       - ETCD_SNAPSHOT_COUNT=50000
-      - ETCD_MAX_REQUEST_BYTES=33554432
-      - ETCD_MAX_TXNS_IN_FLIGHT=2048
     volumes:
-      - ./volumes/milvus/etcd:/etcd
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
     command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
     healthcheck:
-      test: ["CMD", "etcdctl", "--endpoints=http://etcd:2379", "endpoint", "health"]
+      test: ["CMD", "etcdctl", "endpoint", "health"]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -60,28 +63,17 @@ services:
       - app-network
 
   minio:
-    container_name: milvus-minio-dev
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
     environment:
-      MINIO_ROOT_USER: neuroplex-minio
-      MINIO_ROOT_PASSWORD: neuroplex-minio
-      MINIO_REGION: us-east-1
-      MINIO_BROWSER: "on"
-      MINIO_PROMETHEUS_AUTH_TYPE: public
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9001:9001"
+      - "9000:9000"
     volumes:
-      - ./volumes/milvus/minio:/minio_data
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
     command: minio server /minio_data --console-address ":9001"
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -90,50 +82,17 @@ services:
     networks:
       - app-network
 
-  milvus:
-    image: milvusdb/milvus:latest
-    container_name: milvus-standalone-dev
+  standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.5.12
     command: ["milvus", "run", "standalone"]
     security_opt:
-      - seccomp:unconfined
+    - seccomp:unconfined
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
-      MINIO_ACCESS_KEY: neuroplex-minio
-      MINIO_SECRET_KEY: neuroplex-minio
-      MILVUS_LOG_LEVEL: debug
-      MILVUS_ENABLE_STANDALONE_EMBEDDED: "true"
-      MILVUS_ROOTCOORD_ADDRESS: "localhost:19530"
-      MILVUS_PROXY_PORT: "19530"
-      MILVUS_USE_ROCKSMQ_STANDALONE: "true"
-      MILVUS_GRPC_KEEPALIVE_TIME: 60
-      MILVUS_GRPC_KEEPALIVE_TIMEOUT: 20
-      MILVUS_GRPC_INITIAL_WINDOW_SIZE: 65536
-      MILVUS_GRPC_MAX_SEND_SIZE: 33554432
-      MILVUS_GRPC_MAX_RECV_SIZE: 33554432
-      GOTRACEBACK: crash
-      GOMEMLIMIT: 7GiB
     volumes:
-      - ./volumes/milvus/milvus:/var/lib/milvus
-      - ./volumes/milvus/logs:/var/lib/milvus/logs
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 8G
-        reservations:
-          cpus: '2'
-          memory: 4G
-    ulimits:
-      nofile:
-        soft: 65535
-        hard: 65535
-      memlock:
-        soft: -1
-        hard: -1
-      core:
-        soft: -1
-        hard: -1
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
       interval: 30s
@@ -144,17 +103,68 @@ services:
       - "19530:19530"
       - "9091:9091"
     depends_on:
-      etcd:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      - "etcd"
+      - "minio"
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: neuroplex-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONPATH=/app
+      - NEO4J_URI=bolt://graph:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neuroplex-12345678
+      - MILVUS_HOST=standalone
+      - MILVUS_PORT=19530
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ../data:/app/data
+      - ../saves:/app/saves
+    depends_on:
+      - graph
+      - standalone
+      - ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+      target: production
+    container_name: neuroplex-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.21.0.0/16
+  default:
+    name: app-network
+
+volumes:
+  ollama:
+    name: ollama

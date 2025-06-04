@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment directory
+venv/
+env/
+
+# Frontend project
+frontend/node_modules/
+
+# Log and temporary files
+*.log
+*.tmp
+
+# Docker
+Dockerfile
+docker-compose.yml
