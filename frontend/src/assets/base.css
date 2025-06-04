@@ -1,0 +1,83 @@
+:root {
+  /* Primary Ocean Blue Palette */
+  --main-1000: #0B1426;
+  --main-900: #1A2B47;
+  --main-800: #2A4269;
+  --main-700: #3B598A;
+  --main-600: #4C70AB;
+  --main-500: #5E87CC;
+  --main-400: #7B9DD6;
+  --main-300: #98B3E0;
+  --main-200: #B5C9EA;
+  --main-100: #D2DFF4;
+  --main-50: #E8F0F9;
+  --main-25: #F4F8FC;
+  --main-10: #F9FBFE;
+  --main-5: #FCFDFE;
+
+  /* Neutral Gray Scale */
+  --gray-10000: #000000;
+  --gray-2000: #0A0D10;
+  --gray-1000: #151A1F;
+  --gray-900: #20262E;
+  --gray-800: #3D454F;
+  --gray-700: #5A6570;
+  --gray-600: #778591;
+  --gray-500: #94A5B2;
+  --gray-400: #B1C5D3;
+  --gray-300: #CEE5F4;
+  --gray-200: #E1EDF7;
+  --gray-100: #F0F6FA;
+  --gray-50: #F8FBFD;
+  --gray-10: #FCFEFF;
+  --gray-0: #FFFFFF;
+
+  /* Semantic Colors */
+  --main-color: #4C70AB;
+  --main-color-dark: #2A4269;
+  --main-light-1: #5E87CC;
+  --main-light-2: #D2DFF4;
+  --main-light-3: #E8F0F9;
+  --main-light-4: #F0F6FA;
+  --main-light-5: #F4F8FC;
+  --main-light-6: #F9FBFE;
+  --main-light-7: #FCFDFE;
+  --secondary-color: #5A6570;
+  --error-color: #D32F2F;
+  --success-color: #2E7D32;
+  --warning-color: #F57C00;
+  --info-color: #1976D2;
+
+  /* Map-Specific Colors */
+  --water-color: var(--main-500);
+  --land-color: #F5F7F0;
+  --border-color: var(--gray-400);
+  --highlight-color: var(--warning-color);
+  --active-region: var(--main-300);
+
+  /* Layout Variables */
+  --bg-sider: var(--main-5);
+  --color-text: var(--gray-1000);
+  --min-width: 400px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  font-weight: normal;
+}
+
+body {
+  display: flow-root;
+  min-height: 100vh;
+  color: var(--gray-900);
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans SC', 'Roboto', 'HarmonyOS Sans SC', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
