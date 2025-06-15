@@ -291,51 +291,9 @@ cd frontend && npm run lint
 curl http://localhost:5000/health
 ```
 
-## Performance & Monitoring
-
-### Health Monitoring
-- **Backend**: `/health` endpoint
-- **Database health checks**: Automated monitoring
-- **Container health**: Built-in Docker health checks
-- **Resource monitoring**: CPU, memory, storage tracking
-
-### Performance Optimization
-- **Caching**: Nginx caching and compression
-- **Database indexing**: Optimized queries
-- **Async processing**: Non-blocking operations
-- **Vector search**: Optimized similarity search
-
-## Roadmap
-
-- [ ] **WebSocket Integration**: Real-time communication
-- [ ] **Multi-language Support**: Internationalization
-- [ ] **Plugin System**: Custom tool integration
-- [ ] **Cloud Deployment**: Kubernetes templates
-- [ ] **Advanced Analytics**: Usage statistics and insights
-- [ ] **Mobile Applications**: React Native apps
-
-## Contributing
-
-We welcome contributions! Please feel free to submit issues and enhancement requests.
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-Thanks to all the amazing open-source projects that make Neuroplex possible:
-- FastAPI, Vue.js, Neo4j, Milvus
-- LlamaIndex, LangChain, Transformers
-- All our contributors and the community
-
----
 
 <div align="center">
   <strong>⭐ Star this repository if you find it helpful!</strong>
